@@ -67,3 +67,61 @@ kubectl get pods
 Autopilot mode is a mode of operation in GKE where Google will manage all the configurations of the cluster for the user, such as autoscaling, security and nodes. 
 
 It can cause problems because the user doesn't have the control over the cluster anymore, which can lead to many undesired behaviors and a conflict of interests with Google, since the company that is managing the cluster will benefit from a high usage of computer resources for example.
+
+### Reconfiguring the application
+
+Delete all running services.
+
+```
+kubectl delete -f ./release/kubernetes-manifests.yaml
+```
+
+Create new Kubernetes config using Kustomize.
+
+```
+cd kustomize
+kustomize edit add component components/without-loadgenerator
+kubectl kustomize .
+```
+
+Re-create services.
+
+```
+kubectl apply -k .
+```
+
+Now we can see that the load-generator service is not deployed anymore with the current Kubernetes manifest.
+```
+kubectl get pods
+    NAME                                     READY   STATUS    RESTARTS   AGE
+    adservice-54fdcb4646-xm26z               1/1     Running   0          18m
+    cartservice-7d76bb9df-rk9vb              1/1     Running   0          18m
+    checkoutservice-5d9d84cd44-x7wbd         1/1     Running   0          18m
+    currencyservice-569f6c566d-cbp6s         1/1     Running   0          18m
+    emailservice-7d4b8cd7d6-b5xcx            1/1     Running   0          18m
+    frontend-76dbbddfc5-pk8q9                1/1     Running   0          18m
+    paymentservice-9ff6ffd6-8jt22            1/1     Running   0          18m
+    productcatalogservice-74c67b9d8b-w6k7k   1/1     Running   0          18m
+    recommendationservice-5966b9f59d-zdtjs   1/1     Running   0          18m
+    redis-cart-c4fc658fb-vpmlr               1/1     Running   0          18m
+    shippingservice-5565748dc4-9b2js         1/1     Running   0          18m
+```
+
+#### Which of the two parameters (`requests` and `limits`) actually matters when Kubernetes decides that it can deploy a service on a worker node?
+
+During deploy phase, the `requests` parameter is the one observed, where a service is not deployed if it's node cannot handle the desired `request` of the service. The limit is a parameter to be observed during runtime, where a service is forbidden to use more computing and memory than it's `limits` parameter allows it.
+
+#### Select 2 services among those that seem less critical in the application to reduce their resource requirement and justify your choices in the report
+
+##### AdService
+
+Since it's not part of the core infrastructure of the system and it's not part of the buying workflow, this service can have it's computing power decreased, in order to keep the total computing power inside the desired constraints.
+
+In our system, we set the `request` parameter to 100m (from 200m) and the `limits` parameter to 150m (from 300m).
+
+##### EmailService
+
+We think that this service is not critical and does not resource heavy since it consists of only sending emails and it's done after the buying pipeline, which should compromise to much the user experience on a real system.
+
+In our system, we set the `request` parameter to 50m (from 100m) and the `limits` parameter to 100m (from 200m).
+
