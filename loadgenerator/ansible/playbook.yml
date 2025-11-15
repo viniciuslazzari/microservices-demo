@@ -1,0 +1,47 @@
+- hosts: loadgen
+  become: yes
+  vars:
+    frontend_addr: "<YOUR_APP_IP_OR_DOMAIN>"  # Your online boutique IP
+    users: 10
+    rate: 1
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - git
+        state: present
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Clone Locust repository
+      git:
+        repo: "https://github.com/<YOUR_REPO>.git"  # or your local repo
+        dest: /home/ubuntu/locust
+        version: main
+
+    - name: Build Docker image
+      community.docker.docker_image:
+        build:
+          path: /home/ubuntu/locust
+        name: locust-loadgen
+
+    - name: Run Locust container
+      community.docker.docker_container:
+        name: locust
+        image: locust-loadgen
+        state: started
+        restart_policy: unless-stopped
+        env:
+          FRONTEND_ADDR: "{{ frontend_addr }}"
+          USERS: "{{ users }}"
+          RATE: "{{ rate }}"
