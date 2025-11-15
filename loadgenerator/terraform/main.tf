@@ -26,7 +26,7 @@ resource "google_compute_instance" "loadgenerator" {
   metadata_startup_script = <<-EOT
     #!/bin/bash
     apt-get update
-    apt-get install -y docker.io docker-compose git
+    apt-get install -y docker.io git
     systemctl enable docker
     systemctl start docker
   EOT

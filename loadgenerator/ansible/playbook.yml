@@ -1,39 +1,50 @@
 - hosts: loadgen
   become: yes
   vars:
-    frontend_addr: "<YOUR_APP_IP_OR_DOMAIN>"  # Your online boutique IP
-    users: 10
-    rate: 1
+    frontend_addr: "{{ frontend_addr }}"
+    users: "{{ users }}"
+    rate: "{{ rate }}"
+  
   tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-
-    - name: Install Docker
+    - name: Install dependencies
       apt:
         name:
           - docker.io
-          - docker-compose
           - git
         state: present
+        update_cache: yes
 
-    - name: Enable and start Docker
+    - name: Start Docker
       systemd:
         name: docker
         enabled: yes
         state: started
 
-    - name: Clone Locust repository
+    - name: Clone repository
       git:
-        repo: "https://github.com/<YOUR_REPO>.git"  # or your local repo
-        dest: /home/ubuntu/locust
+        repo: "https://github.com/viniciuslazzari/microservices-demo.git"
+        dest: /home/ubuntu/microservices-demo
         version: main
 
-    - name: Build Docker image
+    - name: Set permissions
+      file:
+        path: /home/ubuntu/microservices-demo
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: Remove existing container
+      community.docker.docker_container:
+        name: locust
+        state: absent
+      ignore_errors: yes
+
+    - name: Build Locust image
       community.docker.docker_image:
-        build:
-          path: /home/ubuntu/locust
         name: locust-loadgen
+        build:
+          path: /home/ubuntu/microservices-demo/loadgenerator/locust
+        source: build
 
     - name: Run Locust container
       community.docker.docker_container:
