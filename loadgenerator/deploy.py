@@ -30,12 +30,12 @@ def wait_for_ssh(ip):
 def main():
     if len(sys.argv) not in (4, 5, 6):
         print("Usage: python deploy.py <frontend_ip> <users> <rate> [run_time] [csv_prefix]")
-        print("  run_time example: 10m, 30s (optional, default: 10m)")
+        print("  run_time example: 1m, 30s (optional, default: 1m)")
         print("  csv_prefix example: run1 (optional, default: run)")
         sys.exit(1)
 
     frontend_ip, users, rate = sys.argv[1], sys.argv[2], sys.argv[3]
-    run_time = sys.argv[4] if len(sys.argv) >= 5 else "10m"
+    run_time = sys.argv[4] if len(sys.argv) >= 5 else "1m"
     csv_prefix = sys.argv[5] if len(sys.argv) == 6 else "run"
 
     # Setup SSH key
@@ -50,10 +50,7 @@ def main():
     run(["terraform", "init"], cwd="terraform")
     run([
         "terraform", "apply", "-auto-approve",
-        f"-var=public_key={public_key}",
-        "-var=project=cloudcomputing-478315",
-        "-var=region=europe-west6",
-        "-var=zone=europe-west6-a"
+        f"-var=public_key={public_key}"
     ], cwd="terraform")
 
     # Get VM IP
@@ -116,10 +113,7 @@ def main():
     try:
         run([
             "terraform", "destroy", "-auto-approve",
-            f"-var=public_key={public_key}",
-            "-var=project=cloudcomputing-478315",
-            "-var=region=europe-west6",
-            "-var=zone=europe-west6-a"
+            f"-var=public_key={public_key}"
         ], cwd="terraform")
     except subprocess.CalledProcessError:
         print("Terraform destroy failed. You may need to remove the VM manually.")

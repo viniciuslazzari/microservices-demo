@@ -23,3 +23,15 @@ variable "run_time" {
   type        = string
   default     = "5m"
 }
+
+variable "instance_name" {
+  description = "Name prefix for the VM instance"
+  type        = string
+  default     = "loadgenerator"
+}
+
+variable "machine_type" {
+  description = "GCE machine type for the load generator"
+  type        = string
+  default     = "e2-medium"
+}

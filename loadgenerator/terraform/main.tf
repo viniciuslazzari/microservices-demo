@@ -5,8 +5,8 @@ provider "google" {
 }
 
 resource "google_compute_instance" "loadgenerator" {
-  name         = "loadgenerator"
-  machine_type = "e2-medium"
+  name         = var.instance_name
+  machine_type = var.machine_type
 
   boot_disk {
     initialize_params {
