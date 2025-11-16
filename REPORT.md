@@ -64,7 +64,7 @@ kubectl get pods
 
 #### Briefly explain what is this Autopilot mode and why it hides the problem.
 
-Autopilot mode is a mode of operation in GKE where Google will manage all the configurations of the cluster for the user, such as autoscaling, security and nodes. 
+Autopilot mode is a mode of operation in GKE where Google will manage all the configurations of the cluster for the user, such as autoscaling, security and nodes.
 
 It can cause problems because the user doesn't have the control over the cluster anymore, which can lead to many undesired behaviors and a conflict of interests with Google, since the company that is managing the cluster will benefit from a high usage of computer resources for example.
 
@@ -126,6 +126,43 @@ We think that this service is not critical and does not resource heavy since it 
 In our system, we set the `request` parameter to 50m (from 100m) and the `limits` parameter to 100m (from 200m).
 
 ### Analyzing the provided configuration
+#### PaymentService
+
+We have chosen to analyze the configuration file of the PaymentService. The file contains the definition for three Kubernetes objects: Deployment, Service, and ServiceAccount. Some parameters define names and labels used to identify the objects, as well as environment variables. Below we describe the most significant parameters.
+
+The first section contains the parameters related to Deployment, with the information on how to run the application:
+- `terminationGracePeriodSeconds: 5` defines that Kubernetes should wait for 5 seconds for a Pod that has been deleted to shut down before forcefully killing it. Kubernetes sends SIGTERM to the containers, waits for 5 seconds, then sends SIGKILL if they are still running.
+- Pod-level `securityContext`:
+  - `fsGroup: 1000`: Files created in mounted volumes belong to group 1000.
+  - `runAsGroup: 1000`: Processes will run with the group ID 1000.
+  - `runAsNonRoot: true`: The pod cannot run as the root user.
+  - `runAsUser: 1000`: Processes will run with the user ID 1000.
+- Container definition inside `containers`: this deployment only has a single container.
+  - Container-level `securityContext`:
+    - `allowPrivilegeEscalation: false` prevents the container's process from gaining more privileges than it started with.
+    - `capabilities: drop: - ALL` drops all special "Linux capabilities", restricting what the container can do.
+    - `privileged: false` ensures that the container does not run in "privileged" mode.
+    - `readOnlyRootFilesystem: true` ensures that the container's files cannot be modified.
+  - `image: us-central1-docker.pkg.dev/google-samples/microservices-demo/paymentservice:v0.10.3` defines the specific Docker image that has to be pulled and run.
+  - `ports: containerPort: 50051` tells Kubernetes that the application inside the container is listening on port 50051.
+  - `readinessProbe: grpc: port: 50051` defines how Kubernetes checks if the container is ready to receive traffic. In this case it performs a gRPC health check on port 50051.
+  - `livenessProbe: grpc: port: 50051`: defines how Kubernetes checks if the container is alive and healthy. If it fails, Kubernetes assumes the container is broken and restarts it.
+  - `resources` defines the CPU and memory resources for the container.
+    - `requests`: The guaranteed minimum.
+      - `cpu: 100m`: 100 millicpu (0.1 CPU).
+      - `memory: 64Mi`: 64 mebibytes of RAM.
+    - `limits`: The maximum amount of resources the container is allowed to use.
+      - `cpu: 200m`: 200 millicpu (0.2 CPU).
+      - `memory: 128Mi`: 128 mebibytes of RAM.
+
+The Service definition describes how the service is exposed. In the specification (`spec`) section, we find the following parameters:
+- `type: ClusterIP`: Default type. Exposes the Service only on an internal IP address within the cluster. It's not reachable from outside the cluster.
+- `selector: app: paymentservice:` Selects the Pods with this label (link to the Deployment Pods).
+- `ports` defines the port mapping:
+  - `port: 50051`: the port  exposed by the Service.
+  - `targetPort: 50051`: the container port number inside the Pod.
+
+Finally, the third section corresponds to the ServiceAccount, which creates a cluster-level identity for the application with the name `paymentservice`, referenced by the Deployment's `serviceAccountName: paymentservice`.
 
 ### Deploying the load generator on a local machine
 
