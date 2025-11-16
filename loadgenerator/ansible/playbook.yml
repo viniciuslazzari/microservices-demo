@@ -4,6 +4,7 @@
     frontend_addr: "{{ frontend_addr }}"
     users: "{{ users }}"
     rate: "{{ rate }}"
+    time: "{{ time | default('5m') }}"
   
   tasks:
     - name: Install dependencies
@@ -33,12 +34,6 @@
         group: ubuntu
         recurse: yes
 
-    - name: Remove existing container
-      community.docker.docker_container:
-        name: locust
-        state: absent
-      ignore_errors: yes
-
     - name: Build Locust image
       community.docker.docker_image:
         name: locust-loadgen
@@ -46,13 +41,8 @@
           path: /home/ubuntu/microservices-demo/loadgenerator/locust
         source: build
 
-    - name: Run Locust container
+    - name: Ensure no leftover locust container is running
       community.docker.docker_container:
         name: locust
-        image: locust-loadgen
-        state: started
-        restart_policy: unless-stopped
-        env:
-          FRONTEND_ADDR: "{{ frontend_addr }}"
-          USERS: "{{ users }}"
-          RATE: "{{ rate }}"
+        state: absent
+      ignore_errors: yes

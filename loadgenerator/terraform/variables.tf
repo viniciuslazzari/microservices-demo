@@ -17,3 +17,9 @@ variable "zone" {
   type        = string
   description = "GCP Zone"
 }
+
+variable "run_time" {
+  description = "Default run time for Locust (ex: 10m, 30s). Optional."
+  type        = string
+  default     = "5m"
+}

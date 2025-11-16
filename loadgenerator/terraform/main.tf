@@ -33,3 +33,4 @@ resource "google_compute_instance" "loadgenerator" {
 
   tags = ["http-server"]
 }
+

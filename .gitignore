@@ -28,3 +28,4 @@ release/wi-kubernetes-manifests.yaml
 vendor/
 keys
 .terraform
+results

@@ -24,4 +24,6 @@ COPY locustfile.py .
 
 ENV GEVENT_SUPPORT=True
 
-ENTRYPOINT locust --host="http://${FRONTEND_ADDR}" --headless -u "${USERS:-10}" -r "${RATE:-1}" 2>&1
+# Default entrypoint: headless Locust run using environment variables.
+# Image can still be used with `docker run --entrypoint locust ...` for custom runs.
+ENTRYPOINT ["locust", "--host=http://${FRONTEND_ADDR}", "--headless", "-u", "${USERS:-10}", "-r", "${RATE:-1}", "--run-time", "${RUN_TIME:-5m}"]
