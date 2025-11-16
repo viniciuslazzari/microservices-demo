@@ -207,3 +207,9 @@ docker run --rm -p 8089:8089 -e FRONTEND_ADDR=34.65.30.228 -e USERS=10 -e RATE=1
     --------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
             Aggregated                                                                             41     58     64     67    200    700   1100   1100   1100   1100   1100    187
 ```
+
+### Deploying automatically the load generator in Google Cloud
+
+This task was completed using the scripts inside the `loadgenerator` folder. The idea is to create a virtual machine in GKE using Terraform and capture it's IP address. Later, this address is used by Ansible to stablish a SSH connection with the machine, clone the `locust` test script and execute it. All this process is managed by a python script `deploy.py`, receiving the IP address of the frontend, the number of desired users and pooling rate for testing.
+
+If everything works well, a virtual machine should be deployed inside GKE, executing the `locust` test script with the desired parameters. The script `destroy.py` can be used to destroy the current virtual machine.
