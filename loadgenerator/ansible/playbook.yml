@@ -5,7 +5,7 @@
     users: "{{ users }}"
     rate: "{{ rate }}"
     time: "{{ time | default('5m') }}"
-  
+
   tasks:
     - name: Install dependencies
       apt:
