@@ -3,6 +3,80 @@
 ## TODO:
 Create our own monitoring stack
 
+## Create monitoring namespace
+
+```bash
+kubectl create namespace monitoring
+```
+
+## RBAC
+RBAC permissions to allow Prometheus to discover pods and services inside the cluster.
+
+## Prometheus
+
+- Scrape configuration
+- Deployment
+- Service
+
+```bash
+kubectl apply -f prometheus.yaml
+```
+
+Port-forwarding
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus 9090:9090
+```
+
+Test:
+```http://localhost:9090```
+
+## Node Exporter
+- Exposes node-level metrics.
+- Deploy as DaemonSet.
+
+```bash
+kubectl apply -f node-exporter.yaml
+```
+
+Port-forwarding
+
+```bash
+kubectl port-forward ds/node-exporter 9100:9100 -n monitoring
+```
+
+Test:
+```http://localhost:9100/metrics```
+
+## cAdvisor
+- Pod-level metrics
+- Deploy as DaemonSet
+
+```bash
+kubectl apply -f cadvisor.yaml
+```
+
+Port-forwarding
+
+```bash
+kubectl port-forward ds/cadvisor 8080:8080 -n monitoring
+```
+
+Test:
+```http://localhost:8080/```
+
+
+
+## Grafana
+
+
+
+
+
+
+
+# Version with Helm and kube-prometheus-stack
+
 ## Prerequisites
 
 ### Helm
@@ -78,3 +152,14 @@ kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
 
 
 
+
+kubectl get services -n monitoring
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   34m
+monitoring-grafana                        ClusterIP   34.118.233.105   <none>        80/TCP                       34m
+monitoring-kube-prometheus-alertmanager   ClusterIP   34.118.232.202   <none>        9093/TCP,8080/TCP            34m
+monitoring-kube-prometheus-operator       ClusterIP   34.118.228.50    <none>        443/TCP                      34m
+monitoring-kube-prometheus-prometheus     ClusterIP   34.118.239.91    <none>        9090/TCP,8080/TCP            34m
+monitoring-kube-state-metrics             ClusterIP   34.118.226.52    <none>        8080/TCP                     34m
+monitoring-prometheus-node-exporter       ClusterIP   34.118.233.7     <none>        9100/TCP                     34m
+prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     34m
