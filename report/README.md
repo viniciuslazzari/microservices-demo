@@ -213,3 +213,53 @@ docker run --rm -p 8089:8089 -e FRONTEND_ADDR=34.65.30.228 -e USERS=10 -e RATE=1
 This task was completed using the scripts inside the `loadgenerator` folder. The idea is to create a virtual machine in GKE using Terraform and capture it's IP address. Later, this address is used by Ansible to stablish a SSH connection with the machine, clone the `locust` test script and execute it. All this process is managed by a python script `deploy.py`, receiving the IP address of the frontend, the number of desired users and pooling rate for testing.
 
 If everything works well, a virtual machine should be deployed inside GKE, executing the `locust` test script with the desired parameters. The script `destroy.py` can be used to destroy the current virtual machine.
+
+## Canary releases — ProductCatalogservice v2
+
+This section describes how to deploy a canary for `productcatalogservice` (v2) and how to validate traffic splitting.
+
+- **Code change (v2):** `src/productcatalogservice_v2/server.go` was updated to log `service version: v2` and to use profiling version `2.0.0` so the instance can be easily identified in logs/telemetry.
+
+- **Kubernetes manifests:**
+  - Updated `kubernetes-manifests/productcatalogservice.yaml` to add label `version: v1` to the v1 Deployment and pod template.
+  - Added `kubernetes-manifests/productcatalogservice-v2.yaml` which creates a Deployment for v2 with labels `app: productcatalogservice` and `version: v2`. The existing Service `productcatalogservice` keeps selecting pods with `app: productcatalogservice`.
+
+- **Istio routing:** Added `istio-manifests/productcatalogservice-canary.yaml` containing:
+  - `DestinationRule` with subsets `v1` and `v2` (selecting pods by label `version`).
+  - `VirtualService` routing 75% of traffic to subset `v1` and 25% to subset `v2`.
+
+Deployment steps (example):
+```
+# Build/push v2 image (tag as productcatalogservice:v2)
+docker build -t productcatalogservice:v2 ./src/productcatalogservice_v2
+# push to registry if using remote cluster
+
+# Apply v1 (if not already present)
+kubectl apply -f kubernetes-manifests/productcatalogservice.yaml
+
+# Deploy v2
+kubectl apply -f kubernetes-manifests/productcatalogservice-v2.yaml
+
+# Apply Istio canary routing
+kubectl apply -f istio-manifests/productcatalogservice-canary.yaml
+```
+
+Methodology to validate traffic split:
+- Use `kubectl get pods -l app=productcatalogservice -o wide` to see pods and their versions via label `version`.
+- Check logs on pods: pods with v2 will include the startup log `service version: v2`.
+- Generate traffic (e.g., with the existing load generator or `curl`/`grpcurl`) to the frontend or directly to the service entrypoint and observe distribution.
+- Use Istio / Kiali: Kiali shows traffic distribution between service versions visually. Confirm approximately 25% of requests go to pods labeled `version=v2`.
+- Alternative quick check: stream logs from all pods and count requests hitting v2 vs v1 during a test run.
+
+Switching to v2 (full promotion):
+- Once validated, update the `VirtualService` weights to 100% for subset `v2` and 0% for `v1`, or update Deployment labels and/or scale down the v1 Deployment:
+```
+kubectl patch virtualservice productcatalogservice-vs -n default --type='json' -p='[{"op":"replace","path":"/spec/http/0/route/0/weight","value":0},{"op":"replace","path":"/spec/http/0/route/1/weight","value":100}]'
+
+# then scale down v1
+kubectl scale deployment productcatalogservice --replicas=0
+```
+
+Notes:
+- Ensure Istio is installed in the cluster and sidecar injection is enabled to use subset routing.
+- The image name `productcatalogservice:v2` is an example; adapt to your registry naming and push process.
