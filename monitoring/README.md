@@ -12,6 +12,10 @@ kubectl create namespace monitoring
 ## RBAC
 RBAC permissions to allow Prometheus to discover pods and services inside the cluster.
 
+```bash
+kubectl apply -f rbac.yaml
+```
+
 ## Prometheus
 
 - Scrape configuration
@@ -69,13 +73,24 @@ Test:
 
 ## Grafana
 
+- resource consumption at the level of each node
+- resource consumption at the level of each pod
+
+```bash
+kubectl apply -f grafana.yaml
+```
+Access the service
+
+```bash
+kubectl -n monitoring port-forward svc/grafana 3000:3000
+```
+
+Test:
+```http://localhost:3000/```
 
 
 
-
-
-
-# Version with Helm and kube-prometheus-stack
+#  Previous Version with Helm and kube-prometheus-stack
 
 ## Prerequisites
 
