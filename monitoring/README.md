@@ -9,11 +9,17 @@ Create our own monitoring stack
 kubectl create namespace monitoring
 ```
 
+## Option 1: apply everything
+```bash
+kubectl apply -f monitoring/
+```
+
+## Option 2: apply each resource individually
 ## RBAC
 RBAC permissions to allow Prometheus to discover pods and services inside the cluster.
 
 ```bash
-kubectl apply -f rbac.yaml
+kubectl apply -f 01-rbac.yaml
 ```
 
 ## Prometheus
@@ -23,7 +29,7 @@ kubectl apply -f rbac.yaml
 - Service
 
 ```bash
-kubectl apply -f prometheus.yaml
+kubectl apply -f 02-prometheus.yaml
 ```
 
 Port-forwarding
@@ -40,7 +46,7 @@ Test:
 - Deploy as DaemonSet.
 
 ```bash
-kubectl apply -f node-exporter.yaml
+kubectl apply -f 03-node-exporter.yaml
 ```
 
 Port-forwarding
@@ -57,7 +63,7 @@ Test:
 - Deploy as DaemonSet
 
 ```bash
-kubectl apply -f cadvisor.yaml
+kubectl apply -f 04-cadvisor.yaml
 ```
 
 Port-forwarding
@@ -77,7 +83,7 @@ Test:
 - resource consumption at the level of each pod
 
 ```bash
-kubectl apply -f grafana.yaml
+kubectl apply -f 05-grafana.yaml
 ```
 Access the service
 

@@ -40,6 +40,40 @@ data:
               "legendFormat": "{{instance}}"
             }
           ]
+        },
+        {
+          "type": "graph",
+          "title": "Node Memory Usage",
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Node Disk Usage",
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"}))",
+              "legendFormat": "{{instance}} - {{mountpoint}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Node Network I/O",
+          "targets": [
+            {
+              "expr": "rate(node_network_receive_bytes_total[5m])",
+              "legendFormat": "{{instance}} - receive"
+            },
+            {
+              "expr": "rate(node_network_transmit_bytes_total[5m])",
+              "legendFormat": "{{instance}} - transmit"
+            }
+          ]
         }
       ]
     }
@@ -58,6 +92,40 @@ data:
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Pod Memory Usage",
+          "targets": [
+            {
+              "expr": "sum(container_memory_usage_bytes{container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Pod Network I/O",
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total{container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}} - receive"
+            },
+            {
+              "expr": "sum(rate(container_network_transmit_bytes_total{container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}} - transmit"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Pod Restarts (last 1h)",
+          "targets": [
+            {
+              "expr": "increase(kube_pod_container_status_restarts_total[1h])",
+              "legendFormat": "{{namespace}} / {{pod}}"
             }
           ]
         }
