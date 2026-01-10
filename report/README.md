@@ -214,6 +214,63 @@ This task was completed using the scripts inside the `loadgenerator` folder. The
 
 If everything works well, a virtual machine should be deployed inside GKE, executing the `locust` test script with the desired parameters. The script `destroy.py` can be used to destroy the current virtual machine.
 
+## Monitoring the application and the infrastructure
+This section describes the monitoring infrastructure.Before implementing our own monitoring infrastructure, we initially deployed the monitoring stack using Helm and the community-maintained `kube-prometheus-stack` chart. The objective was to better understand the monitoring components necessary for observing a cluster at both the node and pod levels, and understand how the metrics are exposed, how Prometheus is configured to scrape the metrics, and how the results can be presented in Grafana dashboards. After understanding the end results, we implemented our own monitoring stack manually using Kubernetes manifests, deploying Prometheus, Grafana, Node Exporter and cAdvisor explicitly. This approach gave full control over the configuration and ensured an understanding of the monitoring pipeline.
+
+The code corresponding to this section can be found in the `monitoring` directory, which contains a `README` with detailed instructions on how to apply and test each part of the monitoring stack. The stack is based on Prometheus (for collecting data) and Grafana (to produce dashboards). Both are deployed inside the Kubernetes cluster, in a monitoring namespace.
+
+- **Prometheus:** is responsible for collecting data. It is deploying inside the cluster abd scrapes data every 15s. It has 3 scrape jobs: self-monitoring, Node Exporter (to get node-level information) and cAdvisor (to get pod-level information).
+
+- **RBAC:** We had to create a Role-Based Access Control authorization to to enable Prometheus to monitor the Kubernetes cluster. We created a dedicated ServiceAccount in the monitoring namespace. This ServiceAccount was granted a ClusterRole defining the necessary read-only permissions to access cluster resources. A ClusterRoleBinding was then used to associate the ServiceAccount with this ClusterRole, allowing the Prometheus pod to authenticate securely and query the Kubernetes API.
+
+- **Node Exporter:** is deployed as a DaemonSet so that a pod runs on every node in the cluster, collecting metrics such as CPU usage, memory usage, disk usage, and network I/O. It exposes these metrics on port 9100, allowing Prometheus to scrape them directly from each node.
+- **cAdvisor:** is also deployed as a DaemonSet and runs on every node to collect container-level metrics, including CPU, memory, disk, and network usage for each container.Prometheus scrapes these metrics via cAdvisor to visualize container performance, detect bottlenecks, and troubleshoot application issues.
+- **Grafana:** is deployed as a single replica Deployment, with ConfigMaps providing pre-configured dashboards and a Prometheus data source, simplifying setup and enabling immediate visualization of the metrics:
+  - Node Resource Usage Dashboard: CPU usage per node, Memory usage per node, Disk usage per node, Network I/O per node.
+  - Pod Resource Usage Dashboard: CPU usage per pod, Memory usage per pod, Network I/O per pod, Pod restarts over the last hour.
+
+We had to test different combinations of requested resources for Prometheus and Grafana to be able to deploy all of the components. Eventually, we settled on 50m cpu, 256Mi memory for Prometheus (limited at 200m, 512Mi) and on 50m cpu, 100Mi memory for Grafana (limited at 100m, 512Mi), which seemed to be enough.
+
+### Deployment steps
+
+```
+# Run the monitoring stack creation script
+# which creates the namespace and deploys the monitoring infrastructure
+
+cd scripts
+./create_monitoring_stack.sh
+
+# Access the Grafana service with `kubectl port-forward`
+kubectl -n monitoring port-forward svc/grafana 3000:3000
+
+# Access the dashboards and view the collected data
+http://localhost:3000/
+```
+
+### Experiments
+When implementing the configuration, we tested every separate component by accesing the services with `kubectl port-forward`. We could verify that Prometheus could scrape the metrics from Node-Exporter and cAdvisor. To be able to get interesting results, we executed the load generator code and analysed the Grafana dashboards. Initially, we only displayed CPU usage for both nodes and pods. Later we added other metrics to get more information about the state of application.
+
+### Results
+
+50 users rate=5, 1 min: 100 users, rate=10, 5 min
+
+![Node CPU Usage](../monitoring/results/node_cpu_usage.png)
+
+![Node Disk Usage](../monitoring/results/node_disk_usage.png)
+
+![Node Memory Usage](../monitoring/results/node_memory_usage.png)
+
+![Pod CPU Usage](../monitoring/results/pod_cpu_usage.png)
+
+![Pod Memory Usage](../monitoring/results/pod_memory_usage.png)
+
+![Pod network](../monitoring/results/pod_network.png)
+
+
+
+## Performance evaluation
+TBD
+
 ## Canary releases — ProductCatalogservice v2
 
 This section describes how to deploy a canary for `productcatalogservice` (v2) and how to validate traffic splitting.

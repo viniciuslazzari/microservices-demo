@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Analisa resultados do Locust em uma pasta e gera gráficos e um resumo.
+"""Analyzes Locust load test results in a given directory and generates graphs.
 
-Uso:
-  python analyze_results_dir.py /caminho/para/results/run1 --out out_dir
+Use:
+  python analyze_results_dir.py /path/to/results/run1 --out out_dir
 
-O script procura por arquivos com sufixos:
+The script looks for files with the suffixes:
   *_requests.csv, *_stats_history.csv, *_failures.csv
 
-Gera gráficos em PNG no diretório de saída e imprime um resumo no stdout.
+and generates PNG graphs in the output directory and prints a summary with stdout
 """
 from pathlib import Path
 import argparse
@@ -282,7 +282,6 @@ def main():
         found.append(stats_file.name)
     if stats_per_endpoint_file:
         found.append(stats_per_endpoint_file.name)
-    
 
     if found:
         print('Found files:', ', '.join(found))

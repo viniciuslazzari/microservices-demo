@@ -1,13 +1,6 @@
 # Monitoring
 
-## TODO:
-Create our own monitoring stack
-
-## Create monitoring namespace
-
-```bash
-kubectl create namespace monitoring
-```
+Deploying monitoring stack.
 
 ## Option 1: apply everything
 ```bash
@@ -15,6 +8,13 @@ kubectl apply -f monitoring/
 ```
 
 ## Option 2: apply each resource individually
+
+# Namespace
+
+```bash
+kubectl apply -f 00-namespace.yaml
+```
+
 ## RBAC
 RBAC permissions to allow Prometheus to discover pods and services inside the cluster.
 
