@@ -257,17 +257,19 @@ When implementing the configuration, we tested every separate component by acces
 
 50 users rate=5, 1 min and 100 users, rate=10, 5 min
 
-![Node CPU Usage](../monitoring/results/node_cpu_usage.png)
+![Node CPU Usage](../monitoring/graphs/node_cpu_usage.png)
 
-![Node Disk Usage](../monitoring/results/node_disk_usage.png)
+![Node Disk Usage](../monitoring/graphs/node_disk_usage.png)
 
-![Node Memory Usage](../monitoring/results/node_memory_usage.png)
+![Node Memory Usage](../monitoring/graphs/node_memory_usage.png)
 
-![Pod CPU Usage](../monitoring/results/pod_cpu_usage.png)
+![Node Network Usage](../monitoring/graphs/node_network.png)
 
-![Pod Memory Usage](../monitoring/results/pod_memory_usage.png)
+![Pod CPU Usage](../monitoring/graphs/pod_cpu_usage.png)
 
-![Pod network](../monitoring/results/pod_network.png)
+![Pod Memory Usage](../monitoring/graphs/pod_memory_usage.png)
+
+![Pod network](../monitoring/graphs/pod_network.png)
 
 Looking at the dashboards, we realized that we were displaying data for all the pods, including those belonging to  `kube-system` and `gmp-sytems` namespaces, as well as from our own `monitoring` namespace. We decided to filter only by the `default` namespace to display the application metrics.
 
