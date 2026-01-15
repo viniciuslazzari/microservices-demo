@@ -241,13 +241,15 @@ We had to test different combinations of requested resources for Prometheus and 
 # which creates the namespace and deploys the monitoring infrastructure
 
 cd scripts
-./create_monitoring_stack.sh
+./create-monitoring-stack.sh
 
 # Access the Grafana service with `kubectl port-forward`
 kubectl -n monitoring port-forward svc/grafana 3000:3000
 
 # Access the dashboards and view the collected data
 http://localhost:3000/
+
+with user/password = admin
 ```
 
 #### Experiments
@@ -289,7 +291,7 @@ The `deploy.py` script works as follows:
 1. Collect results from the new VM to local folder `results`.
 1. Destroy the VM.
 
-This ensures a smooth flow of testing, where all the infrastructure is created from the ground up and destroyed in the end. 
+This ensures a smooth flow of testing, where all the infrastructure is created from the ground up and destroyed in the end.
 
 `terraform` will also create the new VM on the cluster region that was used to create the cluster, which ensures that no real network bottleneck will be
 observed since both the deploy cluster and the load generator VM will be very close to each other.
@@ -311,11 +313,11 @@ The Slowdown: Once the traffic passes 50 requests per second (around the 13:05 p
 
 ![Percentiles top 10](./images/stats_percentiles_top_10.png)
 
-In order to understand which parts of the application were causing the slowdown, we analyzed the performance of the top 10 endpoint groups. 
+In order to understand which parts of the application were causing the slowdown, we analyzed the performance of the top 10 endpoint groups.
 
-By looking at the bar chart, we can see that almost every service had a median response time (50%) near **1000ms**, which matches the spike we saw at the end of the timeseries test. 
+By looking at the bar chart, we can see that almost every service had a median response time (50%) near **1000ms**, which matches the spike we saw at the end of the timeseries test.
 
-The `/cart` endpoint stands out as the biggest bottleneck, where the slowest requests (99.9%) actually exceeded **5000ms**. Across all services, there is a very large gap between the average time and the higher percentiles, which confirms that the system was struggling to stay consistent as load increased. 
+The `/cart` endpoint stands out as the biggest bottleneck, where the slowest requests (99.9%) actually exceeded **5000ms**. Across all services, there is a very large gap between the average time and the higher percentiles, which confirms that the system was struggling to stay consistent as load increased.
 
 ### Canary releases — ProductCatalogservice v2
 
@@ -344,7 +346,7 @@ istioctl install --set profile=demo -y
 
 After this step, `istio` will create some `pods` and `services` on the cluster, as the `control-plane`, `ingress gateway`, `egress gateway`...
 This services are responsible to manipulate the incoming traffic to the cluster and redirect it following the virtual rules defined by the user,
-in this case, the rule was to split the traffic to `product-catalog` between to versions, with `25%` and `75%` of the traffic respectfully. 
+in this case, the rule was to split the traffic to `product-catalog` between to versions, with `25%` and `75%` of the traffic respectfully.
 
 
 After installing `istio` on the cluster, the user can the add the rule `with-canary` to `kustomize`, in order to create a new `manifest` with the
@@ -444,6 +446,8 @@ deployment.apps "productcatalogservice" deleted from default namespace
 
 ### Monitoring the application and the infrastructure (Bonus)
 
+At this point we had issues to create the cluster in region `europe-west6-a`, due to lack of resources. The investigation in GKE suggested waiting and trying again, or changing the location, so we changed it to ̀`europe-west1-b`.
+
 #### Collecting more specific metrics
 
 In this section we used dedicated exporters to collect more specific metrics related to some components of the application:
@@ -454,9 +458,11 @@ Redis Exporter can be configured to export redis-specific metrics, like Redis up
 
 Redis is a REmote DIctionary Server, an open source NoSQL key/value store that stores data in memory and is used as an application cache or quick-response database. Redis exporter, as the name sugggest, allows the application metrics to be exported, so that Prometheus can scrape them and Grafana can then display them.
 
-We opted for a Deployment manifest, instead of a StatefulSet, for the sake of this assignment, because we did not need data to persist, as we are trying to be frugal with the resources and we delete the entire application at the end of each work day.
+After some exploration, we realized that the cart service already had Redis configured. The only thing left to do was to export the metrics and configure Prometheus to scrape them. We also added them to a Grafana dashboard. We then executed the load generator code to see if the metrics would be correctly scraped and displayed.
 
-We added annotations to Redis Deployment to invite Prometheus to scrape the metrics, via Prometheus Service Discovery.
+![Keys in the database](/monitoring/bonus/images/keys_db.png)
+
+![Commands per second](/monitoring/bonus/images/commands_per_second.png)
 
  * **Export metrics related to gRPC**
 
@@ -471,13 +477,24 @@ To raise alerts with Prometheus, we had to configure [alerting rules](https://pr
 - HighNodeMemory: when memory usage is above 85%
 - HighDiskUsage: when disk usage is above 85%
 - HighNodeLoad: when load average is high
+
+
 - PodRestarting: when pods restart frequently
 - HighPodCPU: when pod CPU usage is above 80%
 - HighPodMemory: when pod memory usage is above 85%
 - PodNotReady: when pods aren't in Running/Succeeded state
 
+- RedisDown
+- RedisMemoryHigh
+- RedisEvictingKeys
 
 We could see the active alerts by accessing `http://localhost:9090/alerts`.
+
+![Alerts](/monitoring/bonus/images/prometheus_alerts.png)
+
+We ran the load generator script and we were able to trigger the RedisMemoryHigh alert:
+
+![RedisMemoryHigh](/monitoring/bonus/images/redis_alert.png)
 
 In order to receive notifications from these alerts, we had to configure [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/). We read the instructions on how to do it, but due to lack of time we decided to prioritize other tasks.
 

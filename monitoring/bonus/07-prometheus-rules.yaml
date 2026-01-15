@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app: prometheus
+data:
+  alert.rules: |
+    groups:
+    - name: node_alerts
+      interval: 30s
+      rules:
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+
+      - alert: HighNodeCPU
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+
+      - alert: HighNodeMemory
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory on {{ $labels.instance }}"
+
+      # UPDATED: Added fstype!="overlay" to reduce noise (like in Grafana)
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Disk Usage on {{ $labels.instance }}"
+
+    - name: pod_alerts
+      interval: 30s
+      rules:
+      - alert: HighPodCPU
+        expr: sum(rate(container_cpu_usage_seconds_total{container!="",container!="POD"}[5m])) by (namespace, pod, container) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on pod {{ $labels.pod }}"
+
+      - alert: HighPodMemory
+        expr: sum(container_memory_working_set_bytes{container!="",container!="POD"}) by (namespace, pod, container) / sum(container_spec_memory_limit_bytes{container!="",container!="POD"}) by (namespace, pod, container) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory on pod {{ $labels.pod }}"
+
+    # REDIS
+    # New Alerting Rules for Redis
+    - name: redis_alerts
+      interval: 30s
+      rules:
+      - alert: RedisDown
+        expr: redis_up{job="redis-cart-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis {{ $labels.instance }} is DOWN"
+          description: "Redis instance {{ $labels.instance }} is not reachable."
+
+      # Redis High Memory Usage Alert
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes{job="redis-cart-exporter"} / redis_memory_max_bytes{job="redis-cart-exporter"} * 100 > 90
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis {{ $labels.instance }} Memory > 90%"
+          description: "Redis is running out of RAM (Current: {{ $value }}%)"
+
+      # Redis Evicting Keys Alert
+      - alert: RedisEvictingKeys
+        expr: rate(redis_evicted_keys_total{job="redis-cart-exporter"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis {{ $labels.instance }} is evicting data"
+          description: "Redis is deleting data to make space. Consider increasing maxmemory."
