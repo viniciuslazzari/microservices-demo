@@ -90,7 +90,7 @@ data:
           "title": "Pod CPU Usage",
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_io_kubernetes_pod_namespace=\"default\", container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}}"
             }
           ]
@@ -100,7 +100,7 @@ data:
           "title": "Pod Memory Usage",
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{container_label_io_kubernetes_pod_namespace=\"default\", container_label_io_kubernetes_container_name!=\"POD\",container_label_io_kubernetes_pod_name!=\"\"}) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}}"
             }
           ]
@@ -110,11 +110,11 @@ data:
           "title": "Pod Network I/O",
           "targets": [
             {
-              "expr": "sum(rate(container_network_receive_bytes_total{container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "expr": "sum(rate(container_network_receive_bytes_total{container_label_io_kubernetes_pod_namespace=\"default\", container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}} - receive"
             },
             {
-              "expr": "sum(rate(container_network_transmit_bytes_total{container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
+              "expr": "sum(rate(container_network_transmit_bytes_total{container_label_io_kubernetes_pod_namespace=\"default\", container_label_io_kubernetes_pod_name!=\"\"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name)",
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}} - transmit"
             }
           ]
@@ -124,7 +124,7 @@ data:
           "title": "Pod Restarts (last 1h)",
           "targets": [
             {
-              "expr": "increase(kube_pod_container_status_restarts_total[1h])",
+              "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"default\"}[1h])",
               "legendFormat": "{{namespace}} / {{pod}}"
             }
           ]

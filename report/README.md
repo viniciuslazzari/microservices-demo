@@ -214,8 +214,11 @@ This task was completed using the scripts inside the `loadgenerator` folder. The
 
 If everything works well, a virtual machine should be deployed inside GKE, executing the `locust` test script with the desired parameters. The script `destroy.py` can be used to destroy the current virtual machine.
 
-## Monitoring the application and the infrastructure
-This section describes the monitoring infrastructure.Before implementing our own monitoring infrastructure, we initially deployed the monitoring stack using Helm and the community-maintained `kube-prometheus-stack` chart. The objective was to better understand the monitoring components necessary for observing a cluster at both the node and pod levels, and understand how the metrics are exposed, how Prometheus is configured to scrape the metrics, and how the results can be presented in Grafana dashboards. After understanding the end results, we implemented our own monitoring stack manually using Kubernetes manifests, deploying Prometheus, Grafana, Node Exporter and cAdvisor explicitly. This approach gave full control over the configuration and ensured an understanding of the monitoring pipeline.
+## Advanced steps
+
+### Monitoring the application and the infrastructure
+
+This section describes the monitoring infrastructure. Before implementing our own monitoring infrastructure, we initially deployed the monitoring stack using Helm and the community-maintained `kube-prometheus-stack` chart. The objective was to better understand the monitoring components necessary for observing a cluster at both the node and pod levels, and understand how the metrics are exposed, how Prometheus is configured to scrape the metrics, and how the results can be presented in Grafana dashboards. After understanding the end results, we implemented our own monitoring stack manually using Kubernetes manifests, deploying Prometheus, Grafana, Node Exporter and cAdvisor explicitly. This approach gave full control over the configuration and ensured an understanding of the monitoring pipeline.
 
 The code corresponding to this section can be found in the `monitoring` directory, which contains a `README` with detailed instructions on how to apply and test each part of the monitoring stack. The stack is based on Prometheus (for collecting data) and Grafana (to produce dashboards). Both are deployed inside the Kubernetes cluster, in a monitoring namespace.
 
@@ -231,7 +234,7 @@ The code corresponding to this section can be found in the `monitoring` director
 
 We had to test different combinations of requested resources for Prometheus and Grafana to be able to deploy all of the components. Eventually, we settled on 50m cpu, 256Mi memory for Prometheus (limited at 200m, 512Mi) and on 50m cpu, 100Mi memory for Grafana (limited at 100m, 512Mi), which seemed to be enough.
 
-### Deployment steps
+#### Deployment steps
 
 ```
 # Run the monitoring stack creation script
@@ -247,12 +250,12 @@ kubectl -n monitoring port-forward svc/grafana 3000:3000
 http://localhost:3000/
 ```
 
-### Experiments
+#### Experiments
 When implementing the configuration, we tested every separate component by accesing the services with `kubectl port-forward`. We could verify that Prometheus could scrape the metrics from Node-Exporter and cAdvisor. To be able to get interesting results, we executed the load generator code and analysed the Grafana dashboards. Initially, we only displayed CPU usage for both nodes and pods. Later we added other metrics to get more information about the state of application.
 
-### Results
+#### Results
 
-50 users rate=5, 1 min: 100 users, rate=10, 5 min
+50 users rate=5, 1 min and 100 users, rate=10, 5 min
 
 ![Node CPU Usage](../monitoring/results/node_cpu_usage.png)
 
@@ -266,12 +269,12 @@ When implementing the configuration, we tested every separate component by acces
 
 ![Pod network](../monitoring/results/pod_network.png)
 
+Looking at the dashboards, we realized that we were displaying data for all the pods, including those belonging to  `kube-system` and `gmp-sytems` namespaces, as well as from our own `monitoring` namespace. We decided to filter only by the `default` namespace to display the application metrics.
 
-
-## Performance evaluation
+### Performance evaluation
 TBD
 
-## Canary releases — ProductCatalogservice v2
+### Canary releases — ProductCatalogservice v2
 
 This section describes how to deploy a canary for `productcatalogservice` (v2) and how to validate traffic splitting.
 
@@ -320,3 +323,52 @@ kubectl scale deployment productcatalogservice --replicas=0
 Notes:
 - Ensure Istio is installed in the cluster and sidecar injection is enabled to use subset routing.
 - The image name `productcatalogservice:v2` is an example; adapt to your registry naming and push process.
+
+## Bonus steps
+
+### Monitoring the application and the infrastructure (Bonus)
+
+#### Collecting more specific metrics
+
+In this section we used dedicated exporters to collect more specific metrics related to some components of the application:
+
+* **Redis Exporter**
+
+Redis Exporter can be configured to export redis-specific metrics, like Redis uptime, commands executed per second, memory utilization, and more. For that, we followed this [guide](https://grafana.com/oss/prometheus/exporters/redis-exporter/) and the [Google Cloud Observability documentation](https://docs.cloud.google.com/stackdriver/docs/managed-prometheus/exporters/redis). The latter suggests installing the Redis exporter as a sidecar to the Redis workload.
+
+Redis is a REmote DIctionary Server, an open source NoSQL key/value store that stores data in memory and is used as an application cache or quick-response database. Redis exporter, as the name sugggest, allows the application metrics to be exported, so that Prometheus can scrape them and Grafana can then display them.
+
+We opted for a Deployment manifest, instead of a StatefulSet, for the sake of this assignment, because we did not need data to persist, as we are trying to be frugal with the resources and we delete the entire application at the end of each work day.
+
+We added annotations to Redis Deployment to invite Prometheus to scrape the metrics, via Prometheus Service Discovery.
+
+ * **Export metrics related to gRPC**
+
+The application services already have gRPC configured, but it was necessary to expose the metrics so that Prometheus could scrape them. They use OpenTelemetry for tracing but lack Prometheus exporters for metrics. We wanted to implement it, but in the end we could not finish due to lack of time.
+
+#### Raising alerts
+
+To raise alerts with Prometheus, we had to configure [alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/). To do so, we created a new file with the the following rules:
+
+- NodeDown: when a node exporter is unreachable
+- HighNodeCPU: when CPU usage is above 80%
+- HighNodeMemory: when memory usage is above 85%
+- HighDiskUsage: when disk usage is above 85%
+- HighNodeLoad: when load average is high
+- PodRestarting: when pods restart frequently
+- HighPodCPU: when pod CPU usage is above 80%
+- HighPodMemory: when pod memory usage is above 85%
+- PodNotReady: when pods aren't in Running/Succeeded state
+
+
+We could see the active alerts by accessing `http://localhost:9090/alerts`.
+
+In order to receive notifications from these alerts, we had to configure [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/). We read the instructions on how to do it, but due to lack of time we decided to prioritize other tasks.
+
+#### Collecting traces
+
+We wanted to explore traces to get information about the path of requests through the application. We studied the provided [Kustomize configuration](kustomize/components/google-cloud-operations/README.md) which activates tracing, deploys the OpenTelemetry collector and connects it to Google Cloud Trace backend.
+
+We followed the provided instructions to add the component and deploy.
+
+
