@@ -18,4 +18,3 @@ resources:
 - base
 components:
 - components/without-loadgenerator
-- components/with-canary
