@@ -1,4 +1,7 @@
-apiVersion: networking.istio.io/v1beta1
+## NOTE: This manifest requires Istio CRDs (VirtualService, DestinationRule).
+## If you get "no matches for kind ... ensure CRDs are installed first",
+## install Istio CRDs before applying (for example with `istioctl install`).
+apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: productcatalogservice-destination
@@ -13,7 +16,7 @@ spec:
       version: v2
 
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   name: productcatalogservice-vs
@@ -33,3 +36,6 @@ spec:
 
 # This VirtualService splits traffic 75% to v1 and 25% to v2.
 # Apply with: kubectl apply -f istio-manifests/productcatalogservice-canary.yaml
+
+## Quick fix: if CRDs are missing, run `./scripts/install-istio-crds.sh`
+## or install Istio following: https://istio.io/latest/docs/setup/

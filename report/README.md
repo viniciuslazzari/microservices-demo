@@ -24,7 +24,7 @@ gcloud config set compute/zone europe-west6-a
 
 Create a new cluster called `microservices-demo`.
 ```
-gcloud container clusters create microservices-demo
+gcloud container clusters create microservices-demo --machine-type=e2-standard-4
 
     NAME: microservices-demo
     LOCATION: europe-west6-a
@@ -278,7 +278,7 @@ TBD
 
 This section describes how to deploy a canary for `productcatalogservice` (v2) and how to validate traffic splitting.
 
-- **Code change (v2):** `src/productcatalogservice_v2/server.go` was updated to log `service version: v2` and to use profiling version `2.0.0` so the instance can be easily identified in logs/telemetry.
+- **Code change (v2):** `src/productcatalogservice_v2/server.go` was updated to log `service version: v2` and to use profiling version `2.0.0` so the instance can be easily identified in logs.
 
 - **Kubernetes manifests:**
   - Updated `kubernetes-manifests/productcatalogservice.yaml` to add label `version: v1` to the v1 Deployment and pod template.
@@ -288,41 +288,114 @@ This section describes how to deploy a canary for `productcatalogservice` (v2) a
   - `DestinationRule` with subsets `v1` and `v2` (selecting pods by label `version`).
   - `VirtualService` routing 75% of traffic to subset `v1` and 25% to subset `v2`.
 
-Deployment steps (example):
+Deployment steps:
+
+Before everything, the user needs to be sure that `istio` is correctly installed in the destination cluster, this can be done using the following commands:
+
 ```
-# Build/push v2 image (tag as productcatalogservice:v2)
-docker build -t productcatalogservice:v2 ./src/productcatalogservice_v2
-# push to registry if using remote cluster
-
-# Apply v1 (if not already present)
-kubectl apply -f kubernetes-manifests/productcatalogservice.yaml
-
-# Deploy v2
-kubectl apply -f kubernetes-manifests/productcatalogservice-v2.yaml
-
-# Apply Istio canary routing
-kubectl apply -f istio-manifests/productcatalogservice-canary.yaml
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.28.1
+export PATH=$PWD/bin:$PATH
+istioctl install --set profile=demo -y
 ```
 
-Methodology to validate traffic split:
-- Use `kubectl get pods -l app=productcatalogservice -o wide` to see pods and their versions via label `version`.
-- Check logs on pods: pods with v2 will include the startup log `service version: v2`.
-- Generate traffic (e.g., with the existing load generator or `curl`/`grpcurl`) to the frontend or directly to the service entrypoint and observe distribution.
-- Use Istio / Kiali: Kiali shows traffic distribution between service versions visually. Confirm approximately 25% of requests go to pods labeled `version=v2`.
-- Alternative quick check: stream logs from all pods and count requests hitting v2 vs v1 during a test run.
+After this step, `istio` will create some `pods` and `services` on the cluster, as the `control-plane`, `ingress gateway`, `egress gateway`...
+This services are responsible to manipulate the incoming traffic to the cluster and redirect it following the virtual rules defined by the user,
+in this case, the rule was to split the traffic to `product-catalog` between to versions, with `25%` and `75%` of the traffic respectfully. 
 
-Switching to v2 (full promotion):
-- Once validated, update the `VirtualService` weights to 100% for subset `v2` and 0% for `v1`, or update Deployment labels and/or scale down the v1 Deployment:
+
+After installing `istio` on the cluster, the user can the add the rule `with-canary` to `kustomize`, in order to create a new `manifest` with the
+new version of `product-catalog` and the split rule.
+
 ```
-kubectl patch virtualservice productcatalogservice-vs -n default --type='json' -p='[{"op":"replace","path":"/spec/http/0/route/0/weight","value":0},{"op":"replace","path":"/spec/http/0/route/1/weight","value":100}]'
-
-# then scale down v1
-kubectl scale deployment productcatalogservice --replicas=0
+kustomize edit add component components/with-canary
+kubectl kustomize .
 ```
 
-Notes:
-- Ensure Istio is installed in the cluster and sidecar injection is enabled to use subset routing.
-- The image name `productcatalogservice:v2` is an example; adapt to your registry naming and push process.
+Finally, the new configuration can be used to deploy the new pods and rules.
+
+```
+kubectl apply -k .
+```
+
+Running `kubectl get pods --all-namespaces` now should give the following result.
+
+```
+// Both versions of the product-catalog service
+default           productcatalogservice-85f8c79c75-hdd28                         2/2     Running   0          35m
+default           productcatalogservice-v2-758965c6f8-tg5k9                      2/2     Running   0          35m
+
+// Istio pods and services
+istio-system      istio-egressgateway-6f6bb8f7f9-s47cq                           1/1     Running   0          61m
+istio-system      istio-ingressgateway-7b787c97fc-6kw8r                          1/1     Running   0          61m
+istio-system      istiod-877576bdc-klzfp                                         1/1     Running   0          62m
+```
+
+### Validating the traffic split
+
+To validate the traffic split, we used the `kiali` tool, a visualization tool to observe the deploy and traffic of namespaces inside a cluster.
+
+In order to do this, it was necessary to install two addons to the already existing `istio` installing: `kiali` and `prometheus`. This can be done
+using the following commands.
+
+```
+kubectl apply -f ./samples/addons/kiali.yaml
+kubectl apply -f ./samples/addons/prometheus.yaml
+```
+
+After the install, new `pods` should be available at the cluster, confirming that the new plugins are already available.
+
+```
+istio-system      kiali-7b58697666-cvwnl                                         1/1     Running   0          47m
+istio-system      prometheus-7c48c5c5c7-vfct8                                    2/2     Running   0          6m53s
+```
+
+Running the command `istioctl dashboard kiali` start a `localhost` dashboard, that can be used to inspect what is happening on the cluster.
+
+![Kiali traffic dashboard](./kiali.png "Kiali traffic dashboard")
+
+Here we can see the full connection tree between the services of the cluster. We can validate that the split is working by looking only to the
+`productcatalogservice`. We can see that there are two versions of the service running, as well as the successful requests that reached each one
+of the individual services.
+
+![Product catalog traffic split](./traffic_split.png "Product catalog traffic split")
+
+If we take a look only at the `productcatalog` service, we can observe that the `inbound` traffic is coming only from the `frontend`, which makes sense,
+but the `outbound` traffic is divides between `productcatalogservice` and `productcatalogservice-v2`, where the rate for the first is roughly **0.2rps**
+while for the second we have **0.04rps** after some refreshes, so we can validate that the percentages are working as well.
+
+### Completely rolling out the new version
+
+In order to completely rollout the old version once the new version is validated, we can simply update the parameters of the `productcatalogservice-vs` to
+route **100%** of the traffic to the `v2` version and **0%** to `v1`.
+
+```
+kubectl patch virtualservice productcatalogservice-vs -n default \
+  --type merge -p '{
+    "spec": {
+      "http": [{
+        "route": [
+          {"destination":{"host":"productcatalogservice","subset":"v1"},"weight":0},
+          {"destination":{"host":"productcatalogservice","subset":"v2"},"weight":100}
+        ]
+      }]
+    }
+  }'
+
+virtualservice.networking.istio.io/productcatalogservice-vs patched
+```
+
+![Kiali traffic dashboard after rollout](./kiali_v2.png "Kiali traffic dashboard after rollout")
+
+We can see that even after many refreshes and incoming traffic, the only version of `productcatalogservice` being used is the `v2` one.
+
+Now we can safelly disable the delete the old replicas of `v1`.
+
+```
+kubectl delete deploy productcatalogservice -n default
+
+deployment.apps "productcatalogservice" deleted from default namespace
+```
 
 ## Bonus steps
 
