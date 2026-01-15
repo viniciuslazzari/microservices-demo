@@ -274,7 +274,48 @@ When implementing the configuration, we tested every separate component by acces
 Looking at the dashboards, we realized that we were displaying data for all the pods, including those belonging to  `kube-system` and `gmp-sytems` namespaces, as well as from our own `monitoring` namespace. We decided to filter only by the `default` namespace to display the application metrics.
 
 ### Performance evaluation
-TBD
+
+In order to do the performance evaluation, we created the folder `loadgenerator`, which uses `locust` alongside some infrastructure-as-code tools like
+`terraform` and `ansible` to deploy a load generator for any specific IP, in this case the `frontend` IP of the cluster.
+
+The `deploy.py` script works as follows:
+
+1. Receives the arguments: `<frontend_ip> <users> <rate> [run_time] [csv_prefix]`.
+1. Create a new SSH key on the `keys` folder, if none exists.
+1. Deploy a new VM using terraform with the public key that was just created.
+1. Get the VM IP and configure `ansible` using it and the private key.
+1. `ansible` will configure the machine and install the necessary dependencies.
+1. Run `locust` on the new VM using the arguments received in step 1.
+1. Collect results from the new VM to local folder `results`.
+1. Destroy the VM.
+
+This ensures a smooth flow of testing, where all the infrastructure is created from the ground up and destroyed in the end. 
+
+`terraform` will also create the new VM on the cluster region that was used to create the cluster, which ensures that no real network bottleneck will be
+observed since both the deploy cluster and the load generator VM will be very close to each other.
+
+#### Results
+
+The main tested used to generate the results involved `users = 500`, `rate = 2` and `run_time = 5m`.
+
+The raw data was saved and the script `analyze_results.py` was used to generate both plots available below.
+
+![History timeseries](./images/stats_history_timeseries.png)
+
+The plot shows the correlation between how much work the system does (RPS) and how fast it responds (Median RT).
+
+- Traffic (RPS): The blue line shows the number of requests per second. It starts at zero and climbs steadily, reaching a peak of about **95 requests per second**.
+- Speed (Median RT): The orange line shows the middle-ground response time in milliseconds. For the first half of the test, the system stays fast, keeping wait times under **200ms**.
+
+The Slowdown: Once the traffic passes 50 requests per second (around the 13:05 point), the system starts to slow down. The wait times jumps, eventually reaching over 1000ms by the end of the test.
+
+![Percentiles top 10](./images/stats_percentiles_top_10.png)
+
+In order to understand which parts of the application were causing the slowdown, we analyzed the performance of the top 10 endpoint groups. 
+
+By looking at the bar chart, we can see that almost every service had a median response time (50%) near **1000ms**, which matches the spike we saw at the end of the timeseries test. 
+
+The `/cart` endpoint stands out as the biggest bottleneck, where the slowest requests (99.9%) actually exceeded **5000ms**. Across all services, there is a very large gap between the average time and the higher percentiles, which confirms that the system was struggling to stay consistent as load increased. 
 
 ### Canary releases — ProductCatalogservice v2
 
@@ -354,13 +395,13 @@ istio-system      prometheus-7c48c5c5c7-vfct8                                   
 
 Running the command `istioctl dashboard kiali` start a `localhost` dashboard, that can be used to inspect what is happening on the cluster.
 
-![Kiali traffic dashboard](./kiali.png "Kiali traffic dashboard")
+![Kiali traffic dashboard](./images/kiali.png "Kiali traffic dashboard")
 
 Here we can see the full connection tree between the services of the cluster. We can validate that the split is working by looking only to the
 `productcatalogservice`. We can see that there are two versions of the service running, as well as the successful requests that reached each one
 of the individual services.
 
-![Product catalog traffic split](./traffic_split.png "Product catalog traffic split")
+![Product catalog traffic split](./images/traffic_split.png "Product catalog traffic split")
 
 If we take a look only at the `productcatalog` service, we can observe that the `inbound` traffic is coming only from the `frontend`, which makes sense,
 but the `outbound` traffic is divides between `productcatalogservice` and `productcatalogservice-v2`, where the rate for the first is roughly **0.2rps**
@@ -387,7 +428,7 @@ kubectl patch virtualservice productcatalogservice-vs -n default \
 virtualservice.networking.istio.io/productcatalogservice-vs patched
 ```
 
-![Kiali traffic dashboard after rollout](./kiali_v2.png "Kiali traffic dashboard after rollout")
+![Kiali traffic dashboard after rollout](./images/kiali_v2.png "Kiali traffic dashboard after rollout")
 
 We can see that even after many refreshes and incoming traffic, the only version of `productcatalogservice` being used is the `v2` one.
 
