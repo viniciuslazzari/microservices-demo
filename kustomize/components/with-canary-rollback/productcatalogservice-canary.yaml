@@ -22,6 +22,15 @@ spec:
   hosts:
   - productcatalogservice
   http:
+  - match:
+    - headers:
+        x-canary-test:
+          exact: v3
+    route:
+    - destination:
+        host: productcatalogservice
+        subset: v3
+      weight: 100
   - route:
     - destination:
         host: productcatalogservice

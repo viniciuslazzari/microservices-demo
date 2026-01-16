@@ -384,6 +384,18 @@ istio-system      istio-ingressgateway-7b787c97fc-6kw8r                         
 istio-system      istiod-877576bdc-klzfp                                         1/1     Running   0          62m
 ```
 
+If the traffic split is not working be default, is necessary to allow `istio` to inject 
+traffic inside the pods, which may be disabled by default, this can be done with the
+following commands.
+
+```
+# Enable injection
+kubectl label namespace default istio-injection=enabled --overwrite
+
+# Restart the deployments and pods
+kubectl rollout restart deployment -n default
+```
+
 ### Validating the traffic split
 
 To validate the traffic split, we used the `kiali` tool, a visualization tool to observe the deploy and traffic of namespaces inside a cluster.
