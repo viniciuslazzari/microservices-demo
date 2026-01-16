@@ -288,7 +288,7 @@ If we take a look only at the `productcatalog` service, we can observe that the 
 but the `outbound` traffic is divides between `productcatalogservice` and `productcatalogservice-v2`, where the rate for the first is roughly **0.2rps**
 while for the second we have **0.04rps** after some refreshes, so we can validate that the percentages are working as well.
 
-### Completely rolling out the new version
+**Completely rolling out the new version**
 
 In order to completely rollout the old version once the new version is validated, we can simply update the parameters of the `productcatalogservice-vs` to
 route **100%** of the traffic to the `v2` version and **0%** to `v1`.
@@ -321,7 +321,7 @@ kubectl delete deploy productcatalogservice -n default
 deployment.apps "productcatalogservice" deleted from default namespace
 ```
 
-## Bonus steps
+## Bonus steps
 
 **Canary releases [Bonus]**
 
