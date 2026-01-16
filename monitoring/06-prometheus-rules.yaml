@@ -35,7 +35,7 @@ data:
         annotations:
           summary: "High Memory on {{ $labels.instance }}"
 
-      # UPDATED: Added fstype!="overlay" to reduce noise (like in Grafana)
+
       - alert: HighDiskUsage
         expr: (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} * 100 > 85
         for: 5m
@@ -48,23 +48,41 @@ data:
       interval: 30s
       rules:
       - alert: HighPodCPU
-        expr: sum(rate(container_cpu_usage_seconds_total{container!="",container!="POD"}[5m])) by (namespace, pod, container) * 100 > 80
+        expr: sum(rate(container_cpu_usage_seconds_total{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"}[5m])) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) * 100 > 80
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High CPU on pod {{ $labels.pod }}"
+          summary: "High CPU on pod {{ $labels.container_label_io_kubernetes_pod_name }}"
+          description: "Container {{ $labels.container_label_io_kubernetes_container_name }} in pod {{ $labels.container_label_io_kubernetes_pod_name }} is using {{ $value }}% CPU"
 
       - alert: HighPodMemory
-        expr: sum(container_memory_working_set_bytes{container!="",container!="POD"}) by (namespace, pod, container) / sum(container_spec_memory_limit_bytes{container!="",container!="POD"}) by (namespace, pod, container) * 100 > 85
+        expr: sum(container_memory_working_set_bytes{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"}) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) / sum(container_spec_memory_limit_bytes{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"} > 0) by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) * 100 > 85
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High Memory on pod {{ $labels.pod }}"
+          summary: "High Memory on pod {{ $labels.container_label_io_kubernetes_pod_name }}"
+          description: "Container {{ $labels.container_label_io_kubernetes_container_name }} in pod {{ $labels.container_label_io_kubernetes_pod_name }} is using {{ $value }}% of memory limit"
 
-    # REDIS
-    # New Alerting Rules for Redis
+      - alert: ContainerNotRunning
+        expr: sum by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) (container_memory_working_set_bytes{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"}) == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container_label_io_kubernetes_container_name }} in pod {{ $labels.container_label_io_kubernetes_pod_name }} is not running"
+          description: "Container in namespace {{ $labels.container_label_io_kubernetes_pod_namespace }} has no memory usage, indicating it may be down"
+
+      - alert: PodOOMKilled
+        expr: sum by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) (container_memory_working_set_bytes{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"}) / sum by (container_label_io_kubernetes_pod_namespace, container_label_io_kubernetes_pod_name, container_label_io_kubernetes_container_name) (container_spec_memory_limit_bytes{container_label_io_kubernetes_pod_name!="",container_label_io_kubernetes_container_name!="POD"} > 0) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.container_label_io_kubernetes_pod_name }} is close to OOM"
+          description: "Container {{ $labels.container_label_io_kubernetes_container_name }} in pod {{ $labels.container_label_io_kubernetes_pod_name }} is using {{ $value | humanizePercentage }} of its memory limit and may be OOM killed soon"
+
     - name: redis_alerts
       interval: 30s
       rules:
@@ -76,16 +94,6 @@ data:
         annotations:
           summary: "Redis {{ $labels.instance }} is DOWN"
           description: "Redis instance {{ $labels.instance }} is not reachable."
-
-      # Redis High Memory Usage Alert
-      - alert: RedisMemoryHigh
-        expr: redis_memory_used_bytes{job="redis-cart-exporter"} / redis_memory_max_bytes{job="redis-cart-exporter"} * 100 > 90
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Redis {{ $labels.instance }} Memory > 90%"
-          description: "Redis is running out of RAM (Current: {{ $value }}%)"
 
       # Redis Evicting Keys Alert
       - alert: RedisEvictingKeys
