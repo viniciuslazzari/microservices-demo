@@ -119,16 +119,6 @@ data:
             }
           ]
         },
-        {
-          "type": "graph",
-          "title": "Pod Restarts (last 1h)",
-          "targets": [
-            {
-              "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"default\"}[1h])",
-              "legendFormat": "{{namespace}} / {{pod}}"
-            }
-          ]
-        }
       ]
     }
   redis-dashboard.json: |

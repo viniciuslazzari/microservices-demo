@@ -514,11 +514,22 @@ We followed the provided instructions to add the component and deploy, and we cr
 
 However, with the new configuration, currencyservice, emailservice, paymentservice and shippingservice could not be deployed. We used the investigation inside GoogleCloud to identify the issue, as well as Google Cloud Observability Error reporting to further investigate. One problem was an application error `TypeError: provider.addSpanProcessor is not a function`. It seems that addSpanProcessor was deprecated by OpentTelemetry. We tried to fix it by changing package.json and modifying the versions, using @opentelemetry/exporter-trace-otlp-grpc instead of @opentelemetry/exporter-otlp-grpc. but it dit not work. We pulled the most recent version of the services from the repository, but unfortunately we could not fix the problem.
 
-At least we were able to confirm that the opentelemetrycollector was successfully deployed.
+At least we were able to confirm that the opentelemetrycollector was successfully deployed, but due to errors with the services we were not able to analyze the traces.
 
-This issue also made us realize that some Prometheus alerts were not using the correct metrics and label names from cAdvisor, so we were able to fix the rules.
+This issue also made us realize that some Prometheus alerts were not using the correct metrics and label names from cAdvisor, so we were able to fix the rules. We wanted to add alerts and a dashboard to track Pod restarts, but we did not find a way to do it with cAdvisor, so we removed this graph from the dashboard. From our research, it would have been easier to do it with [Kube State Metrics](https://grafana.com/blog/monitoring-kubernetes-layers-key-metrics-to-know/), but we did not implement it.
 
-**Deploying Jaeger**
 
-The assignment document suggest deplyoing a Jaeger service in the cluster and connecting it to the OpenTelemetry collector, to avoid relying on Google Cloud to analyze traces.
+### Review of recent publications [Bonus]
+
+For this task, we selected the article “Cloudscape: A Study of Storage Services in Modern Cloud Architectures”, by Satija et al., published in 2025. The authors present an interesting approach to investigate the current cloud scenario with respect to storage services. Based on a YouTube playlist by Amazon Web Services (AWS), they created a dataset of 396 architectures, describing systems build with AWS. This paper is interesting because it attempts to quantify and describe the way different companies use storage services in their system's workflows. The videos are not scientific presentations, but casual commercial explanations. An AWS employee asks questions to a developer working for external companies, who is responsible to present the architecture and the workflows.
+
+The results are very interesting, showing that S3 plays a large role in the archictectures (present in 68% of the systems), whereas file system services are only mentioned in 4%. Most systems use more than one storage service, combining them for different purposes, even in a single workflow (for example, S3 with a SQL or NoSQL store). Most of the interactions happen with Lambda and EC2; with serverless computing present in 60% of the systems; The authors also identified an important presence of Machine Learning and analytics services relying on S3.
+
+The videos are short and provide interesting insights into the architecture. In 176 videos, the authors were able to get information about the type of data stored, so they used these videos for the qualitative analysis.
+
+However, the paper has some limitations. First, the videos are created by AWS and serve to advertise their products. Therefore, the archictecture presented possibly highlights AWS and hides other elements which in reality might also be involved. The authors highlight the absence of File Systems, but they might still be present in the architecture, but under the hood or maybe not as a main part of the workflow the companies chose to present. The authors recognize that the scope is limited to AWS, but they believe that the results and methodologies could be generalized to other providers.
+
+Second, the authors captured "flow directions to understand the reads and writes", creating directed graphs, but it seems that they do not consider the volume or the different frequencies with which these operations occur. An edge means an interaction between two services, but we lose the difference between those which happen most frequently and are crucial for the system and those who happen occasionally. Therefore, the idea to optmize certain paths might be less productive if they are not in fact very common.
+
+The paper also makes us reflect on how technical decisions can be made based on market standars, and not technical aspects. S3 is widely spread, and it can be convenient, but that does not mean that it is the best solution for all of the companies which use it.
 

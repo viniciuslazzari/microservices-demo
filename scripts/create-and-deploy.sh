@@ -16,7 +16,9 @@ else
   echo "Creating GKE cluster '$CLUSTER_NAME' in zone '$ZONE'..."
   gcloud container clusters create "$CLUSTER_NAME" --zone "$ZONE"
 fi
-
+# Get cluster credentials to update kubeconfig
+echo "Configuring kubectl to access the cluster..."
+gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE"
 # Deploy the application using Kustomize
 cd ../kustomize
 kubectl apply -k .

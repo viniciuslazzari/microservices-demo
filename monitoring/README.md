@@ -94,7 +94,7 @@ kubectl -n monitoring port-forward svc/grafana 3000:3000
 Test:
 ```http://localhost:3000/```
 
--username: ̀`admin`
+- username: ̀`admin`
 - password: ̀`admin`
 
 
