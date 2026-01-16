@@ -464,6 +464,62 @@ deployment.apps "productcatalogservice" deleted from default namespace
 
 ## Bonus steps
 
+### Canary releases (Bonus)
+
+For this step, it was necessary to implement one service with a defect, in this case an artificial one, then
+do a deploy using splitted traffic with `istio` and detect possible problems with the new deployed version, rolling
+out the service in case of any problem.
+
+In order to do this, the `productcatalog` service was used, just like in the **Advanced Step of Canary versions**.
+A `v3` version was created, in `src/productcatalogservice_v3`. This version is exactly the same as the `v2`, but
+with an artificial delay of `3s` on each request.
+
+Then, new manifests and destination rules were created under `kustomize/components/with-canary-rollback`. They
+are exatcly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a 
+exception where every time the **header** `x-canary-test: v3` is found in any request, the `v3` version (defective
+one) is always used. This was done to validate the only the new version on the test script.
+
+```
+spec:
+  hosts:
+  - productcatalogservice
+  http:
+  - match:
+    - headers:
+        x-canary-test:
+          exact: v3
+    route:
+    - destination:
+        host: productcatalogservice
+        subset: v3
+      weight: 100
+  - route:
+    - destination:
+        host: productcatalogservice
+        subset: v1
+      weight: 80
+    - destination:
+        host: productcatalogservice
+        subset: v3
+      weight: 20
+```
+
+By using this rule, we can use the `scripts/canary_test_and_rollback.sh` to do the following:
+
+1. Test the current latency of the `v1` version.
+1. Deploy the `v3` version and `istio` rules.
+1. Wait for the pods to be running and healthy.
+1. Test the latency of the newly deployed version using `x-canary-test: v3`.
+1. If the latency is beyond the `threshold` value defined by the user, rollout the `v3` version and `istio` rules.
+1. Otherwise, keep the `v3` version and `istio` rules in the cluser.
+
+By doing this we can verify that the newly deployed version of a service is working and immediatly rollback
+in case of any problems. 
+
+This setup could be improved by using actual `prometheus` metrics of the newly created pod to check for any
+problems, since leaving a **header** like this in a production product could bring potential problems if
+users or bots could discover it.
+
 ### Monitoring the application and the infrastructure (Bonus)
 
 At this point we had issues to create the cluster in region `europe-west6-a`, due to lack of resources. The investigation in GKE suggested waiting and trying again, or changing the location, so we changed it to ̀`europe-west1-b`.
