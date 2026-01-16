@@ -94,6 +94,8 @@ kubectl -n monitoring port-forward svc/grafana 3000:3000
 Test:
 ```http://localhost:3000/```
 
+-username: ̀`admin`
+- password: ̀`admin`
 
 
 #  Previous Version with Helm and kube-prometheus-stack

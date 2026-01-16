@@ -22,9 +22,10 @@ Configuring the default compute and zone of the project.
 gcloud config set compute/zone europe-west6-a
 ```
 
-Create a new cluster called `microservices-demo`.
+Create a new cluster called `microservices-demo`. Using the default GKE configuration (e2-medium machine type, 3 nodes).
+
 ```
-gcloud container clusters create microservices-demo --machine-type=e2-standard-4
+gcloud container clusters create microservices-demo
 
     NAME: microservices-demo
     LOCATION: europe-west6-a
@@ -45,6 +46,7 @@ kubectl apply -f ./release/kubernetes-manifests.yaml
 ```
 
 Checking if all services where successfully deployed.
+
 ```
 kubectl get pods
     NAME                                     READY   STATUS    RESTARTS   AGE
@@ -62,11 +64,13 @@ kubectl get pods
     shippingservice-5565748dc4-llkbl         1/1     Running   0          10m
 ```
 
+Not all containers of the application managed to start. The default configuration for a GKE cluster does not have enough resources to satisfy all the requirements of the default configuration.
+
 #### Briefly explain what is this Autopilot mode and why it hides the problem.
 
-Autopilot mode is a mode of operation in GKE where Google will manage all the configurations of the cluster for the user, such as autoscaling, security and nodes.
+Autopilot mode is a mode of operation in GKE where Google will manage all the configurations of the cluster for the user, such as autoscaling, security and nodes. If a service needs more resources, such as loadgenerator in this case, autopilot will automatically adapt and scale the cluster. With autopilot, GKE would scale up and provide more resources.
 
-It can cause problems because the user doesn't have the control over the cluster anymore, which can lead to many undesired behaviors and a conflict of interests with Google, since the company that is managing the cluster will benefit from a high usage of computer resources for example.
+It can cause problems because the user doesn't have the control over the cluster anymore, which can lead to many undesired behaviors and a conflict of interests with Google, since the company that is managing the cluster will benefit from a high usage of computer resources, for example.
 
 ### Reconfiguring the application
 
@@ -91,6 +95,7 @@ kubectl apply -k .
 ```
 
 Now we can see that the load-generator service is not deployed anymore with the current Kubernetes manifest.
+
 ```
 kubectl get pods
     NAME                                     READY   STATUS    RESTARTS   AGE
@@ -106,6 +111,9 @@ kubectl get pods
     redis-cart-c4fc658fb-vpmlr               1/1     Running   0          18m
     shippingservice-5565748dc4-9b2js         1/1     Running   0          18m
 ```
+All the containers have all the resources they need to start.
+
+To automate this initial step, we created the `create-and-deploy.sh` script, which creates the cluster using the GKE default configuration. The cluster name and zone can be passed as parameters.
 
 #### Which of the two parameters (`requests` and `limits`) actually matters when Kubernetes decides that it can deploy a service on a worker node?
 
