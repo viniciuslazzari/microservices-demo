@@ -3,7 +3,7 @@
 - The scripts that reproduce the steps taken during this lab can be found inside the [scripts directory](scripts).
 - The report can be found inside the [report directory](report).
 
-## Base Steps
+## Base Steps
 
 The main steps to create the cluster and deploy the application can be found in the `created-and-deploy` script, which can be executed to deploy the application without the load generator.
 
