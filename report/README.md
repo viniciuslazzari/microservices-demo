@@ -484,25 +484,19 @@ To raise alerts with Prometheus, we had to configure [alerting rules](https://pr
 - HighNodeCPU: when CPU usage is above 80%
 - HighNodeMemory: when memory usage is above 85%
 - HighDiskUsage: when disk usage is above 85%
-- HighNodeLoad: when load average is high
 
-
-- PodRestarting: when pods restart frequently
 - HighPodCPU: when pod CPU usage is above 80%
 - HighPodMemory: when pod memory usage is above 85%
-- PodNotReady: when pods aren't in Running/Succeeded state
+- ContainerNotRunning: when container has no memory usage, indicating it may be down
+- PodOOMKilled: when a pod is close to out of memory error and might be killed.
 
-- RedisDown
-- RedisMemoryHigh
-- RedisEvictingKeys
+- RedisDown: when Redis is not reachable.
+- RedisEvictingKeys: when Redis is deleting data to make space.
 
 We could see the active alerts by accessing `http://localhost:9090/alerts`.
 
 ![Alerts](./images/prometheus_alerts.png)
 
-We ran the load generator script and we were able to trigger the RedisMemoryHigh alert:
-
-![RedisMemoryHigh](./images/redis_alert.png)
 
 In order to receive notifications from these alerts, we had to configure [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/). We read the instructions on how to do it, but due to lack of time we decided to prioritize other tasks.
 
