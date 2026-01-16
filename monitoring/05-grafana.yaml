@@ -118,7 +118,7 @@ data:
               "legendFormat": "{{container_label_io_kubernetes_pod_namespace}} / {{container_label_io_kubernetes_pod_name}} - transmit"
             }
           ]
-        },
+        }
       ]
     }
   redis-dashboard.json: |
