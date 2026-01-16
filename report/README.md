@@ -474,7 +474,7 @@ After some exploration, we realized that the cart service already had Redis conf
 
  * **Export metrics related to gRPC**
 
-The application services already have gRPC configured, but it was necessary to expose the metrics so that Prometheus could scrape them. They use OpenTelemetry for tracing but lack Prometheus exporters for metrics. We wanted to implement it, but in the end we could not finish due to lack of time.
+The application services already have gRPC (Remote Procedure Calls) configured, but it was necessary to expose the metrics so that Prometheus could scrape them. They use OpenTelemetry for tracing but lack Prometheus exporters for metrics. We wanted to implement it, but in the end we could not finish due to lack of time.
 
 #### Raising alerts
 
@@ -499,6 +499,35 @@ We could see the active alerts by accessing `http://localhost:9090/alerts`.
 
 
 In order to receive notifications from these alerts, we had to configure [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/). We read the instructions on how to do it, but due to lack of time we decided to prioritize other tasks.
+
+After implementing the bonus part of monitoring and improving Grafana's dashboards, we used Load Generator to try to trigger the alerts and to see the new graphs. The tests were not heavy enough to exceed the thresholds we had stablished, but we were able to see the results in Grafana:
+
+We ran three times:
+- users: 200, rate: 10, time: 6m
+- users: 300, rate: 50, time: 6m
+- users: 1000, rate: 100, time: 6m
+
+**Redis Dashboard**
+
+![Redis - Commands per second](./images/redis_commands_per_second.png)
+
+In the following graph we can see that memory usage is increasing, but no limit has been set:
+
+![Redis - Memory usage](./images/redis_memory_usage.png)
+
+The increase in keys in database shows the three tests being executed.
+
+![Redis - Keys in database](./images/redis_keys_db.png)
+
+The cache hit rate also increases as the new keys are included.
+
+![Redis - Cache hit rate](./images/image.png)
+
+
+
+For the sake of testing the alerts, we reduced some of the threshold values and tried again, and this time we could see the alerts were activated.
+
+
 
 #### Collecting traces
 
