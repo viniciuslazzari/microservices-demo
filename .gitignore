@@ -28,5 +28,5 @@ release/wi-kubernetes-manifests.yaml
 vendor/
 keys
 .terraform
-results
+loadgenerator/results
 loadgenerator/ansible/inventory.ini
