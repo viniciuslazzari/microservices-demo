@@ -504,7 +504,11 @@ We wanted to explore traces to get information about the path of requests throug
 
 We followed the provided instructions to add the component and deploy, and we create a script to automate the setup: `add-tracing.sh`.
 
-However, with the new configuration, not all services could be deployed due an application error related to OpenTelemetry tracing.
+However, with the new configuration, currencyservice, emailservice, paymentservice and shippingservice could not be deployed. We used the investigation inside GoogleCloud to identify the issue, as well as Google Cloud Observability Error reporting to further investigate. One problem was an application error `TypeError: provider.addSpanProcessor is not a function`. It seems that addSpanProcessor was deprecated by OpentTelemetry. We tried to fix it by changing package.json and modifying the versions, using @opentelemetry/exporter-trace-otlp-grpc instead of @opentelemetry/exporter-otlp-grpc. but it dit not work. We pulled the most recent version of the services from the repository, but unfortunately we could not fix the problem.
+
+At least we were able to confirm that the opentelemetrycollector was successfully deployed.
+
+This issue also made us realize that some Prometheus alerts were not using the correct metrics and label names from cAdvisor, so we were able to fix the rules.
 
 **Deploying Jaeger**
 
