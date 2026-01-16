@@ -458,7 +458,7 @@ Redis Exporter can be configured to export redis-specific metrics, like Redis up
 
 Redis is a REmote DIctionary Server, an open source NoSQL key/value store that stores data in memory and is used as an application cache or quick-response database. Redis exporter, as the name sugggest, allows the application metrics to be exported, so that Prometheus can scrape them and Grafana can then display them.
 
-After some exploration, we realized that the cart service already had Redis configured. The only thing left to do was to export the metrics and configure Prometheus to scrape them. We also added them to a Grafana dashboard. We then executed the load generator code to see if the metrics would be correctly scraped and displayed.
+After some exploration, we realized that the cart service already had Redis configured. The only thing left to do was to change `cartservice.yaml` to export the metrics and configure Prometheus to scrape them. We also added them to a Grafana dashboard. We then executed the load generator code to see if the metrics would be correctly scraped and displayed.
 
 ![Keys in the database](./images/keys_db.png)
 
@@ -502,6 +502,11 @@ In order to receive notifications from these alerts, we had to configure [Alertm
 
 We wanted to explore traces to get information about the path of requests through the application. We studied the provided [Kustomize configuration](kustomize/components/google-cloud-operations/README.md) which activates tracing, deploys the OpenTelemetry collector and connects it to Google Cloud Trace backend.
 
-We followed the provided instructions to add the component and deploy.
+We followed the provided instructions to add the component and deploy, and we create a script to automate the setup: `add-tracing.sh`.
 
+However, with the new configuration, not all services could be deployed due an application error related to OpenTelemetry tracing.
+
+**Deploying Jaeger**
+
+The assignment document suggest deplyoing a Jaeger service in the cluster and connecting it to the OpenTelemetry collector, to avoid relying on Google Cloud to analyze traces.
 
