@@ -3,7 +3,7 @@
 - The scripts that reproduce the steps taken during this lab can be found inside the [scripts directory](scripts):
   - `create-and-deploy.sh` to create the cluster and deploy the basic application.
   - `create-monitoring-stack.sh` for the monitoring stack.
-  - `canary_test_and_rollback.sh` for the canary releases.
+  - `canary_test_and_rollback.sh` for the advanced part of canary releases.
   - `clean-up.sh` to delete the resources.
 
 - The report can be found inside the [report directory](report). It contains additional information about design choices, technical choices, experiments, results, challenges, and conclusions.
@@ -14,7 +14,7 @@ The main steps to create the cluster and deploy the application can be found in 
 
 Below are the steps taken to execute the lab in order, beginning with the configuration and the first attempt at deploying the application.
 
-**GKE configuration**
+### GKE configuration
 
 Starting the necessary services.
 
@@ -44,7 +44,7 @@ gcloud container clusters create microservices-demo
     STACK_TYPE: IPV4
 ```
 
-**Deploying the original application in GKE**
+### Deploying the original application in GKE
 
 Apply the default Kubernetes configuration to deploy the project.
 ```
@@ -70,7 +70,7 @@ kubectl get pods
     shippingservice-5565748dc4-llkbl         1/1     Running   0          10m
 ```
 
-**Reconfiguring the application**
+### Reconfiguring the application
 
 Delete all running services.
 
@@ -94,7 +94,7 @@ kubectl apply -k .
 
 Now we can see that the load-generator service is not deployed anymore with the current Kubernetes manifest.
 
-**Deploying the load generator on a local machine**
+### Deploying the load generator on a local machine
 
 This load generator was deployed using the Google Shell in order to avoid conflicts between different instruction set architectures.
 
@@ -138,13 +138,13 @@ docker run --rm -p 8089:8089 -e FRONTEND_ADDR=34.65.30.228 -e USERS=10 -e RATE=1
             Aggregated                                                                             41     58     64     67    200    700   1100   1100   1100   1100   1100    187
 ```
 
-**Deploying automatically the load generator in Google Cloud**
+### Deploying automatically the load generator in Google Cloud
 
-- The code for deploying the load generator in Google Cloud can be found inside the [loadgenerator directory](loadgenerator), which contains a ̀`README` with the detailed  instructions on how to deploy the load generator and execute load tests. More information can be found in the Perfomance Evaluation section.
+- The code for deploying the load generator in Google Cloud can be found inside the [loadgenerator directory](loadgenerator), which contains a ̀`README` with the detailed instructions on how to deploy the load generator and execute load tests. More information can be found in the Performance Evaluation section.
 
 ## Advanced Steps
 
-**Monitoring the application and the infrastructure**
+### Monitoring the application and the infrastructure
 
 - The code related to monitoring the application can be found inside the [monitoring directory](monitoring), which contains a `README` with detailed instructions on how to apply and test each part of the monitoring stack. This folder includes both the code for the advanced steps and the bonus steps.
 - A script to create and deploy the monitoring stack (̀`create-monitoring-stack.sh`) can be found inside the [scripts directory](scripts). It adds not only the necessary services for the advanced step, but also Prometheus-rules for the alerts and Redis exporter (Bonus steps).
@@ -165,7 +165,7 @@ http://localhost:3000/
 with user/password = admin
 ```
 
-**Performance Evaluation**
+### Performance Evaluation
 
 - The code related to Performance Evaluation is also inside the [loadgenerator directory](loadgenerator), which uses `locust` alongside some infrastructure-as-code tools like
 `terraform` and `ansible` to deploy a load generator for any specific IP, in this case the `frontend` IP of the cluster.
@@ -186,7 +186,7 @@ This ensures a smooth flow of testing, where all the infrastructure is created f
 `terraform` will also create the new VM on the cluster region that was used to create the cluster, which ensures that no real network bottleneck will be
 observed since both the deploy cluster and the load generator VM will be very close to each other.
 
-**Canary releases - ProductCatalogservice v2**
+### Canary releases - ProductCatalogservice v2
 
 This section describes how to deploy a canary for `productcatalogservice` (v2) and how to validate traffic splitting.
 
@@ -214,7 +214,6 @@ istioctl install --set profile=demo -y
 After this step, `istio` will create some `pods` and `services` on the cluster, as the `control-plane`, `ingress gateway`, `egress gateway`...
 This services are responsible to manipulate the incoming traffic to the cluster and redirect it following the virtual rules defined by the user,
 in this case, the rule was to split the traffic to `product-catalog` between to versions, with `25%` and `75%` of the traffic respectfully.
-
 
 After installing `istio` on the cluster, the user can the add the rule `with-canary` to `kustomize`, in order to create a new `manifest` with the
 new version of `product-catalog` and the split rule.
@@ -307,7 +306,7 @@ deployment.apps "productcatalogservice" deleted from default namespace
 
 ## Bonus steps
 
-**Canary releases [Bonus]**
+### Canary releases (Bonus)
 
 For this step, it was necessary to implement one service with a defect, in this case an artificial one, then
 do a deploy using splitted traffic with `istio` and detect possible problems with the new deployed version, rolling
@@ -363,9 +362,9 @@ This setup could be improved by using actual `prometheus` metrics of the newly c
 problems, since leaving a **header** like this in a production product could bring potential problems if
 users or bots could discover it.
 
-**Monitoring the application and the infrastructure [Bonus]**
+### Monitoring the application and the infrastructure (Bonus)
 
 The code to implement some of the bonus steps can be found in the [monitoring directory](monitoring). We also created a script to activate tracing inside the application`add-tracing.sh`, which can be found inside the [scripts directory](scripts). However, this part was not successful. More details can found in the report.
 
-**Review of recent publications [Bonus]**
+### Review of recent publications (Bonus)
 The review of the Cloudscape article can be found inside the [report](report/report).
