@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: productcatalogservice-v2
+  name: productcatalogservice-v3
   labels:
     app: productcatalogservice
-    version: v2
+    version: v3
 spec:
   selector:
     matchLabels:
       app: productcatalogservice
-      version: v2
+      version: v3
   template:
     metadata:
       labels:
         app: productcatalogservice
-        version: v2
+        version: v3
     spec:
       serviceAccountName: productcatalogservice
       terminationGracePeriodSeconds: 5
@@ -32,14 +32,15 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: gcr.io/cloudcomputing-478315/productcatalogservice:v2
+        # v3 image (build should contain the code that injects the artificial delay)
+        image: gcr.io/cloudcomputing-478315/productcatalogservice:v3
         ports:
         - containerPort: 3550
         env:
         - name: PORT
           value: "3550"
         - name: DISABLE_PROFILER
-          value: "1"
+          value: "0"
         readinessProbe:
           grpc:
             port: 3550
@@ -48,12 +49,8 @@ spec:
             port: 3550
         resources:
           requests:
-            cpu: 50m
-            memory: 32Mi
-          limits:
             cpu: 100m
             memory: 64Mi
-
-# Note: the existing Service `productcatalogservice` will select pods with label `app: productcatalogservice`.
-# By creating this deployment with `app: productcatalogservice` and `version: v2`, Istio DestinationRule
-# subsets can be used to split traffic between v1 and v2.
+          limits:
+            cpu: 200m
+            memory: 128Mi
