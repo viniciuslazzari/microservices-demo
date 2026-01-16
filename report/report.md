@@ -475,7 +475,7 @@ A `v3` version was created, in `src/productcatalogservice_v3`. This version is e
 with an artificial delay of `3s` on each request.
 
 Then, new manifests and destination rules were created under `kustomize/components/with-canary-rollback`. They
-are exatcly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a
+are exactly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a
 exception where every time the **header** `x-canary-test: v3` is found in any request, the `v3` version (defective
 one) is always used. This was done to validate the only the new version on the test script.
 

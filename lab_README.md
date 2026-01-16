@@ -147,7 +147,7 @@ docker run --rm -p 8089:8089 -e FRONTEND_ADDR=34.65.30.228 -e USERS=10 -e RATE=1
 **Monitoring the application and the infrastructure**
 
 - The code related to monitoring the application can be found inside the [monitoring directory](monitoring), which contains a `README` with detailed instructions on how to apply and test each part of the monitoring stack. This folder includes both the code for the advanced steps and the bonus steps.
-- A script to create and deploy the monitoring stack (̀`create-monitoring-stack.sh`) can be found inside the [scripts directory](scripts).
+- A script to create and deploy the monitoring stack (̀`create-monitoring-stack.sh`) can be found inside the [scripts directory](scripts). It adds not only the necessary services for the advanced step, but also Prometheus-rules for the alerts and Redis exporter (Bonus steps).
 
 ```
 # Run the monitoring stack creation script
@@ -274,19 +274,7 @@ istio-system      kiali-7b58697666-cvwnl                                        
 istio-system      prometheus-7c48c5c5c7-vfct8                                    2/2     Running   0          6m53s
 ```
 
-Running the command `istioctl dashboard kiali` start a `localhost` dashboard, that can be used to inspect what is happening on the cluster.
-
-![Kiali traffic dashboard](./images/kiali.png "Kiali traffic dashboard")
-
-Here we can see the full connection tree between the services of the cluster. We can validate that the split is working by looking only to the
-`productcatalogservice`. We can see that there are two versions of the service running, as well as the successful requests that reached each one
-of the individual services.
-
-![Product catalog traffic split](./images/traffic_split.png "Product catalog traffic split")
-
-If we take a look only at the `productcatalog` service, we can observe that the `inbound` traffic is coming only from the `frontend`, which makes sense,
-but the `outbound` traffic is divides between `productcatalogservice` and `productcatalogservice-v2`, where the rate for the first is roughly **0.2rps**
-while for the second we have **0.04rps** after some refreshes, so we can validate that the percentages are working as well.
+Running the command `istioctl dashboard kiali` start a `localhost` dashboard, that can be used to inspect what is happening on the cluster. The results can be found in the [report](report).
 
 **Completely rolling out the new version**
 
@@ -309,11 +297,7 @@ kubectl patch virtualservice productcatalogservice-vs -n default \
 virtualservice.networking.istio.io/productcatalogservice-vs patched
 ```
 
-![Kiali traffic dashboard after rollout](./images/kiali_v2.png "Kiali traffic dashboard after rollout")
-
-We can see that even after many refreshes and incoming traffic, the only version of `productcatalogservice` being used is the `v2` one.
-
-Now we can safelly disable the delete the old replicas of `v1`.
+After looking at the traffic dashboard and confirming that the only version of `productcatalogservice` being used is the `v2` one, we can safelly disable the delete the old replicas of `v1`.
 
 ```
 kubectl delete deploy productcatalogservice -n default
@@ -334,7 +318,7 @@ A `v3` version was created, in `src/productcatalogservice_v3`. This version is e
 with an artificial delay of `3s` on each request.
 
 Then, new manifests and destination rules were created under `kustomize/components/with-canary-rollback`. They
-are exatcly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a
+are exactly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a
 exception where every time the **header** `x-canary-test: v3` is found in any request, the `v3` version (defective
 one) is always used. This was done to validate the only the new version on the test script.
 
@@ -381,8 +365,7 @@ users or bots could discover it.
 
 **Monitoring the application and the infrastructure [Bonus]**
 
-The code to implement some of the bonus steps can be found in the [monitoring directory](monitoring).
-
+The code to implement some of the bonus steps can be found in the [monitoring directory](monitoring). We also created a script to activate tracing inside the application`add-tracing.sh`, which can be found inside the [scripts directory](scripts). However, this part was not successful. More details can found in the report.
 
 **Review of recent publications [Bonus]**
-The review of the Cloudscape article can be found inside the [report](report/README.md).
+The review of the Cloudscape article can be found inside the [report](report/report).
