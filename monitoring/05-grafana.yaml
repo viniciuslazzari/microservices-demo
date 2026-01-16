@@ -131,6 +131,54 @@ data:
         }
       ]
     }
+  redis-dashboard.json: |
+    {
+      "id": null,
+      "title": "Redis Cart Metrics",
+      "timezone": "browser",
+      "schemaVersion": 16,
+      "version": 1,
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Redis Cart Status",
+          "targets": [{ "expr": "redis_up{job=\"redis-cart-exporter\"}", "legendFormat": "Status (1=Up)" }]
+        },
+        {
+          "type": "graph",
+          "title": "Commands Per Second",
+          "targets": [{ "expr": "rate(redis_commands_processed_total{job=\"redis-cart-exporter\"}[1m])", "legendFormat": "ops/sec" }]
+        },
+        {
+          "type": "graph",
+          "title": "Memory Usage",
+          "targets": [
+            { "expr": "redis_memory_used_bytes{job=\"redis-cart-exporter\"}", "legendFormat": "Used Memory" },
+            { "expr": "redis_memory_max_bytes{job=\"redis-cart-exporter\"}", "legendFormat": "Max Limit" }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Connected Clients",
+          "targets": [{ "expr": "redis_connected_clients{job=\"redis-cart-exporter\"}", "legendFormat": "Clients" }]
+        },
+        {
+          "type": "graph",
+          "title": "Keys in Database",
+          "targets": [{ "expr": "redis_db_keys{job=\"redis-cart-exporter\"}", "legendFormat": "Keys - {{db}}" }]
+        },
+        {
+          "type": "graph",
+          "title": "Evicted Keys",
+          "targets": [{ "expr": "rate(redis_evicted_keys_total{job=\"redis-cart-exporter\"}[5m])", "legendFormat": "Evictions/sec" }]
+        },
+        {
+          "type": "graph",
+          "title": "Cache Hit Rate",
+          "targets": [{ "expr": "rate(redis_keyspace_hits_total{job=\"redis-cart-exporter\"}[5m]) / (rate(redis_keyspace_hits_total{job=\"redis-cart-exporter\"}[5m]) + rate(redis_keyspace_misses_total{job=\"redis-cart-exporter\"}[5m])) * 100", "legendFormat": "Hit Rate %" }]
+        }
+      ]
+    }
 ---
 apiVersion: v1
 kind: ConfigMap
