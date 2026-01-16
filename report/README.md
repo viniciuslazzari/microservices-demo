@@ -259,19 +259,19 @@ When implementing the configuration, we tested every separate component by acces
 
 50 users rate=5, 1 min and 100 users, rate=10, 5 min
 
-![Node CPU Usage](../monitoring/graphs/node_cpu_usage.png)
+![Node CPU Usage](./images/node_cpu_usage.png)
 
-![Node Disk Usage](../monitoring/graphs/node_disk_usage.png)
+![Node Disk Usage](./images/node_disk_usage.png)
 
-![Node Memory Usage](../monitoring/graphs/node_memory_usage.png)
+![Node Memory Usage](./images/node_memory_usage.png)
 
-![Node Network Usage](../monitoring/graphs/node_network.png)
+![Node Network Usage](./images/node_network.png)
 
-![Pod CPU Usage](../monitoring/graphs/pod_cpu_usage.png)
+![Pod CPU Usage](./images/pod_cpu_usage.png)
 
-![Pod Memory Usage](../monitoring/graphs/pod_memory_usage.png)
+![Pod Memory Usage](./images/pod_memory_usage.png)
 
-![Pod network](../monitoring/graphs/pod_network.png)
+![Pod network](./images/pod_network.png)
 
 Looking at the dashboards, we realized that we were displaying data for all the pods, including those belonging to  `kube-system` and `gmp-sytems` namespaces, as well as from our own `monitoring` namespace. We decided to filter only by the `default` namespace to display the application metrics.
 
@@ -460,9 +460,9 @@ Redis is a REmote DIctionary Server, an open source NoSQL key/value store that s
 
 After some exploration, we realized that the cart service already had Redis configured. The only thing left to do was to export the metrics and configure Prometheus to scrape them. We also added them to a Grafana dashboard. We then executed the load generator code to see if the metrics would be correctly scraped and displayed.
 
-![Keys in the database](/monitoring/bonus/images/keys_db.png)
+![Keys in the database](./images/keys_db.png)
 
-![Commands per second](/monitoring/bonus/images/commands_per_second.png)
+![Commands per second](./images/commands_per_second.png)
 
  * **Export metrics related to gRPC**
 
@@ -490,11 +490,11 @@ To raise alerts with Prometheus, we had to configure [alerting rules](https://pr
 
 We could see the active alerts by accessing `http://localhost:9090/alerts`.
 
-![Alerts](/monitoring/bonus/images/prometheus_alerts.png)
+![Alerts](./images/prometheus_alerts.png)
 
 We ran the load generator script and we were able to trigger the RedisMemoryHigh alert:
 
-![RedisMemoryHigh](/monitoring/bonus/images/redis_alert.png)
+![RedisMemoryHigh](./images/redis_alert.png)
 
 In order to receive notifications from these alerts, we had to configure [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/). We read the instructions on how to do it, but due to lack of time we decided to prioritize other tasks.
 
