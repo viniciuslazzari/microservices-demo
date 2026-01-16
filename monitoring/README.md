@@ -98,7 +98,7 @@ Test:
 - password: ̀`admin`
 
 
-#  Previous Version with Helm and kube-prometheus-stack
+#  Initial Version with Helm and kube-prometheus-stack
 
 ## Prerequisites
 
@@ -173,9 +173,9 @@ prometheus-monitoring-kube-prometheus-prometheus-0       2/2     Running   0    
 kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
 ```
 
+## Services running
 
-
-
+```
 kubectl get services -n monitoring
 NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
 alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   34m
@@ -186,3 +186,4 @@ monitoring-kube-prometheus-prometheus     ClusterIP   34.118.239.91    <none>   
 monitoring-kube-state-metrics             ClusterIP   34.118.226.52    <none>        8080/TCP                     34m
 monitoring-prometheus-node-exporter       ClusterIP   34.118.233.7     <none>        9100/TCP                     34m
 prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     34m
+`̀`̀

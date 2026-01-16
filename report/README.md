@@ -218,7 +218,7 @@ docker run --rm -p 8089:8089 -e FRONTEND_ADDR=34.65.30.228 -e USERS=10 -e RATE=1
 
 ### Deploying automatically the load generator in Google Cloud
 
-This task was completed using the scripts inside the `loadgenerator` folder. The idea is to create a virtual machine in GKE using Terraform and capture it's IP address. Later, this address is used by Ansible to stablish a SSH connection with the machine, clone the `locust` test script and execute it. All this process is managed by a python script `deploy.py`, receiving the IP address of the frontend, the number of desired users and pooling rate for testing.
+This task was completed using the scripts inside the `loadgenerator` folder. The idea is to create a virtual machine in GKE using Terraform and capture it's IP address. Later, this address is used by Ansible to establish a SSH connection with the machine, clone the `locust` test script and execute it. All this process is managed by a python script `deploy.py`, receiving the IP address of the frontend, the number of desired users and pooling rate for testing.
 
 If everything works well, a virtual machine should be deployed inside GKE, executing the `locust` test script with the desired parameters. The script `destroy.py` can be used to destroy the current virtual machine.
 
@@ -384,7 +384,7 @@ istio-system      istio-ingressgateway-7b787c97fc-6kw8r                         
 istio-system      istiod-877576bdc-klzfp                                         1/1     Running   0          62m
 ```
 
-If the traffic split is not working be default, is necessary to allow `istio` to inject 
+If the traffic split is not working be default, is necessary to allow `istio` to inject
 traffic inside the pods, which may be disabled by default, this can be done with the
 following commands.
 
@@ -475,7 +475,7 @@ A `v3` version was created, in `src/productcatalogservice_v3`. This version is e
 with an artificial delay of `3s` on each request.
 
 Then, new manifests and destination rules were created under `kustomize/components/with-canary-rollback`. They
-are exatcly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a 
+are exatcly the same as the ones used for the **Advanced Step**, but with one difference: this rule has a
 exception where every time the **header** `x-canary-test: v3` is found in any request, the `v3` version (defective
 one) is always used. This was done to validate the only the new version on the test script.
 
@@ -514,7 +514,7 @@ By using this rule, we can use the `scripts/canary_test_and_rollback.sh` to do t
 1. Otherwise, keep the `v3` version and `istio` rules in the cluser.
 
 By doing this we can verify that the newly deployed version of a service is working and immediatly rollback
-in case of any problems. 
+in case of any problems.
 
 This setup could be improved by using actual `prometheus` metrics of the newly created pod to check for any
 problems, since leaving a **header** like this in a production product could bring potential problems if
@@ -589,9 +589,27 @@ The increase in keys in database shows the three tests being executed.
 
 The cache hit rate also increases as the new keys are included.
 
-![Redis - Cache hit rate](./images/image.png)
+![Redis - Cache hit rate](./images/redis_cache_hit_rate.png)
 
+**Node dashboard**
 
+For the nodes, we can also see the impact of the load tests, with CPU usage, memory usage, and network metrics increasing in value.
+
+![Node CPU usage](./images/node_new_cpu_usage.png)
+
+![Node Memory usage](./images/node_new_memory_usage.png)
+
+![Node Network](./images/node_new_network.png)
+
+**Pod dashboard**
+
+With the Pod dashboard, we are able to see the service-level metrics, identifying those services which consumed more resources.
+
+![Pod CPU Usage](./images/pod_new_cpu_usage.png)
+
+![Pod Memory Usage](./images/pod_new_memory_usage.png)
+
+![Pod Network](./images/pod_new_network.png)
 
 For the sake of testing the alerts, we reduced some of the threshold values and tried again, and this time we could see the alerts were activated.
 
@@ -603,7 +621,7 @@ We wanted to explore traces to get information about the path of requests throug
 
 We followed the provided instructions to add the component and deploy, and we create a script to automate the setup: `add-tracing.sh`.
 
-However, with the new configuration, currencyservice, emailservice, paymentservice and shippingservice could not be deployed. We used the investigation inside GoogleCloud to identify the issue, as well as Google Cloud Observability Error reporting to further investigate. One problem was an application error `TypeError: provider.addSpanProcessor is not a function`. It seems that addSpanProcessor was deprecated by OpentTelemetry. We tried to fix it by changing package.json and modifying the versions, using @opentelemetry/exporter-trace-otlp-grpc instead of @opentelemetry/exporter-otlp-grpc. but it dit not work. We pulled the most recent version of the services from the repository, but unfortunately we could not fix the problem.
+However, with the new configuration, currencyservice, emailservice, paymentservice and shippingservice could not be deployed. We used the investigation inside GoogleCloud to identify the issue, as well as Google Cloud Observability Error reporting to further investigate. One problem was an application error `TypeError: provider.addSpanProcessor is not a function`. It seems that `addSpanProcessor` was deprecated by `OpentTelemetry`. We tried to fix it by changing `package.json` and modifying the versions, using `@opentelemetry/exporter-trace-otlp-grpc instead` of `@opentelemetry/exporter-otlp-grpc`. but it dit not work. We pulled the most recent version of the services from the repository, but unfortunately we could not fix the problem.
 
 At least we were able to confirm that the opentelemetrycollector was successfully deployed, but due to errors with the services we were not able to analyze the traces.
 
@@ -614,13 +632,15 @@ This issue also made us realize that some Prometheus alerts were not using the c
 
 For this task, we selected the article “Cloudscape: A Study of Storage Services in Modern Cloud Architectures”, by Satija et al., published in 2025. The authors present an interesting approach to investigate the current cloud scenario with respect to storage services. Based on a YouTube playlist by Amazon Web Services (AWS), they created a dataset of 396 architectures, describing systems build with AWS. This paper is interesting because it attempts to quantify and describe the way different companies use storage services in their system's workflows. The videos are not scientific presentations, but casual commercial explanations. An AWS employee asks questions to a developer working for external companies, who is responsible to present the architecture and the workflows.
 
-The results are very interesting, showing that S3 plays a large role in the archictectures (present in 68% of the systems), whereas file system services are only mentioned in 4%. Most systems use more than one storage service, combining them for different purposes, even in a single workflow (for example, S3 with a SQL or NoSQL store). Most of the interactions happen with Lambda and EC2; with serverless computing present in 60% of the systems; The authors also identified an important presence of Machine Learning and analytics services relying on S3.
+The results are very interesting, showing that S3 plays a large role in the architectures (present in 68% of the systems), whereas file system services are only mentioned in 4%. Most systems use more than one storage service, combining them for different purposes, even in a single workflow (for example, S3 with a SQL or NoSQL store). Most of the interactions happen with Lambda and EC2; with serverless computing present in 60% of the systems. The authors also identified an important presence of Machine Learning and analytics services relying on S3.
 
 The videos are short and provide interesting insights into the architecture. In 176 videos, the authors were able to get information about the type of data stored, so they used these videos for the qualitative analysis.
 
-However, the paper has some limitations. First, the videos are created by AWS and serve to advertise their products. Therefore, the archictecture presented possibly highlights AWS and hides other elements which in reality might also be involved. The authors highlight the absence of File Systems, but they might still be present in the architecture, but under the hood or maybe not as a main part of the workflow the companies chose to present. The authors recognize that the scope is limited to AWS, but they believe that the results and methodologies could be generalized to other providers.
+However, the paper has some limitations. First, the videos are created by AWS and serve to advertise their products. Therefore, the architecture presented possibly highlights AWS and hides other elements which in reality might also be involved. The authors highlight the absence of File Systems, but they might still be present in the architecture, perhaps under the hood or not as a main part of the workflow the companies chose to present. The authors recognize that the scope is limited to AWS, but they believe that the results and methodologies could be generalized to other providers.
 
-Second, the authors captured "flow directions to understand the reads and writes", creating directed graphs, but it seems that they do not consider the volume or the different frequencies with which these operations occur. An edge means an interaction between two services, but we lose the difference between those which happen most frequently and are crucial for the system and those who happen occasionally. Therefore, the idea to optmize certain paths might be less productive if they are not in fact very common.
+Second, the authors captured "flow directions to understand the reads and writes", creating directed graphs, but it seems that they do not consider the volume or the different frequencies with which these operations occur. An edge means an interaction between two services, but we lose the distinction between those which happen most frequently and are crucial for the system and those who happen occasionally. Therefore, the idea to optimize certain interactions might be less productive if they are not in fact very common or do not involve heavy loads of data.
 
-The paper also makes us reflect on how technical decisions can be made based on market standars, and not technical aspects. S3 is widely spread, and it can be convenient, but that does not mean that it is the best solution for all of the companies which use it.
+During this project, our only contact with storage so far has been through Redis (a NoSQL key/value store), which we have not implemented, only queried to obtain metrics to monitor the application.  Unfortunately, due constraints of time, we were not able to implemente the bonus part "Managing a storage backend for logging orders", which would have allowed us to review the insights about storage systems gained from this article and compare it with our own experience. The section invites us to choose the type of storage backend to integrate into the extended architecture, looking at the trade-offs between key-value stores, relational databases, and document-oriented databases. Gaining more experience with these architectural choices in the future would help us better review the patterns presented in the article.
 
+
+Finally, the paper also makes us reflect on how technical decisions can be made based on market standards and trends rather than technical aspects. S3 is widely spread, and it can be convenient, but that does not mean that it is the best solution for all of the companies which use it.
